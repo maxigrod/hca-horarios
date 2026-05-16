@@ -35,6 +35,10 @@ body { font-family: system-ui, -apple-system, sans-serif; background: var(--colo
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; font-size: 13px; cursor: pointer; border: 0.5px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text); padding: 6px 14px; border-radius: var(--radius); transition: background 0.15s; }
 button:hover { background: #f0f0ee; }
+button.primary { background: var(--color-blue-bg); border-color: var(--color-blue-border); color: var(--color-blue-text); font-weight: 500; }
+button.primary:hover { background: #d4e8f7; }
+button.danger { background: var(--color-red-bg); border-color: #e8a0a0; color: var(--color-red-text); }
+button.danger:hover { background: #f5d5d5; }
 input, select, textarea { font-family: inherit; font-size: 13px; color: var(--color-text); border: 0.5px solid var(--color-border-strong); border-radius: var(--radius); padding: 7px 10px; width: 100%; background: var(--color-surface); }
 input:focus, select:focus, textarea:focus { outline: none; border-color: var(--color-blue-border); }
 label { font-size: 12px; color: var(--color-text-muted); display: block; margin-bottom: 5px; }
@@ -45,14 +49,15 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
 .topbar-brand { font-size: 13px; font-weight: 500; }
 .topbar-brand span { color: var(--color-text-muted); font-weight: 400; }
 .topbar-right { display: flex; align-items: center; gap: 12px; }
-.user-pill { display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 20px; border: 0.5px solid var(--color-border); cursor: pointer; font-size: 12px; color: var(--color-text-muted); }
+.user-pill { display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 20px; border: 0.5px solid var(--color-border); font-size: 12px; color: var(--color-text-muted); }
 .user-avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--color-blue-bg); color: var(--color-blue-text); font-size: 10px; font-weight: 500; display: flex; align-items: center; justify-content: center; }
 .badge { font-size: 11px; padding: 2px 7px; border-radius: 20px; }
-.badge-admin { background: var(--color-green-bg); color: var(--color-green-text); }
-.badge-editor { background: var(--color-blue-bg); color: var(--color-blue-text); }
-.badge-viewer { background: #f0f0ee; color: var(--color-text-muted); }
+.badge-admin    { background: var(--color-green-bg);  color: var(--color-green-text); }
+.badge-editor   { background: var(--color-blue-bg);   color: var(--color-blue-text); }
+.badge-viewer   { background: #f0f0ee; color: var(--color-text-muted); }
+.badge-inactivo { background: #f0f0ee; color: var(--color-text-faint); }
 .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; }
-.conn-dot.ok { background: #1D9E75; }
+.conn-dot.ok  { background: #1D9E75; }
 .conn-dot.err { background: #E24B4A; }
 
 /* SIDEBAR */
@@ -77,30 +82,26 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
 .metric { background: var(--color-bg); border-radius: var(--radius); padding: 14px; }
 .metric-label { font-size: 12px; color: var(--color-text-faint); margin-bottom: 6px; }
 .metric-value { font-size: 24px; font-weight: 500; }
-.metric-sub { font-size: 11px; color: var(--color-text-faint); margin-top: 2px; }
 .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .status-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 0.5px solid var(--color-border); font-size: 13px; }
 .status-row:last-child { border-bottom: none; }
 .status-label { color: var(--color-text-muted); }
 .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-.dot-ok { background: #1D9E75; }
+.dot-ok   { background: #1D9E75; }
 .dot-warn { background: #BA7517; }
-.dot-err { background: #E24B4A; }
-.alert-banner { background: var(--color-amber-bg); border: 0.5px solid #EF9F27; border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: var(--color-amber-text); display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; }
+.dot-err  { background: #E24B4A; }
 
 /* FORMULARIOS */
-.wizard { max-width: 600px; }
+.wizard { max-width: 620px; }
 .steps { display: flex; align-items: center; margin-bottom: 2rem; }
 .step-dot { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
 .step-dot .dot-circle { width: 28px; height: 28px; border-radius: 50%; border: 0.5px solid var(--color-border-strong); background: var(--color-surface); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--color-text-muted); }
 .step-dot.active .dot-circle { background: var(--color-blue-bg); border-color: var(--color-blue-border); color: var(--color-blue-text); font-weight: 500; }
-.step-dot.done .dot-circle { background: var(--color-green-bg); border-color: #5DCAA5; color: var(--color-green-text); }
+.step-dot.done .dot-circle   { background: var(--color-green-bg); border-color: #5DCAA5; color: var(--color-green-text); }
 .step-dot .step-label { font-size: 11px; color: var(--color-text-faint); }
 .step-line { flex: 1; height: 0.5px; background: var(--color-border); margin-bottom: 18px; max-width: 40px; }
-.panel { display: none; }
-.panel.active { display: block; }
 .panel-title { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
-.panel-sub { font-size: 13px; color: var(--color-text-muted); margin-bottom: 1.25rem; }
+.panel-sub   { font-size: 13px; color: var(--color-text-muted); margin-bottom: 1.25rem; }
 .field { margin-bottom: 1rem; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; }
@@ -121,8 +122,8 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
 .legend { display: flex; gap: 16px; margin-top: 10px; }
 .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-muted); }
 .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
-.legend-dot.on { background: var(--color-green-bg); border: 0.5px solid #5DCAA5; }
-.legend-dot.off { background: var(--color-red-bg); border: 0.5px solid #E24B4A; }
+.legend-dot.on  { background: var(--color-green-bg); border: 0.5px solid #5DCAA5; }
+.legend-dot.off { background: var(--color-red-bg);   border: 0.5px solid #E24B4A; }
 .select-all-row { display: flex; gap: 8px; margin-bottom: 10px; }
 .btn-sm { font-size: 12px; padding: 4px 10px; border-radius: 20px; }
 .summary-card { background: var(--color-bg); border-radius: var(--radius); padding: 14px; margin-bottom: 1rem; }
@@ -133,12 +134,39 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
 .success-state { text-align: center; padding: 2.5rem 1rem; }
 .success-icon { width: 52px; height: 52px; border-radius: 50%; background: var(--color-green-bg); color: var(--color-green-text); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 22px; }
 .success-title { font-size: 17px; font-weight: 500; margin-bottom: 6px; }
-.success-sub { font-size: 13px; color: var(--color-text-muted); margin-bottom: 1.25rem; }
+.success-sub   { font-size: 13px; color: var(--color-text-muted); margin-bottom: 1.25rem; }
 
 /* LOADING */
 .loading { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text-muted); padding: 1rem 0; }
 .spinner { width: 16px; height: 16px; border: 2px solid var(--color-border); border-top-color: var(--color-blue-text); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* LISTADO PROFESORES */
+.list-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+.list-toolbar .field { margin-bottom: 0; }
+.list-toolbar select { width: auto; min-width: 150px; }
+.prof-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.prof-table th { text-align: left; padding: 8px 12px; font-size: 12px; color: var(--color-text-muted); font-weight: 500; border-bottom: 0.5px solid var(--color-border); white-space: nowrap; }
+.prof-table td { padding: 10px 12px; border-bottom: 0.5px solid var(--color-border); vertical-align: middle; }
+.prof-table tr:last-child td { border-bottom: none; }
+.prof-table tbody tr { cursor: pointer; transition: background 0.1s; }
+.prof-table tbody tr:hover { background: var(--color-bg); }
+.prof-table tbody tr.inactivo td { opacity: 0.5; }
+.materias-resumen { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip-mini      { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: var(--color-blue-bg); color: var(--color-blue-text); }
+.chip-mini-more { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #f0f0ee; color: var(--color-text-muted); }
+.empty-state { text-align: center; padding: 3rem 1rem; color: var(--color-text-muted); }
+.empty-state i { font-size: 36px; display: block; margin-bottom: 0.75rem; color: var(--color-text-faint); }
+
+/* FICHA */
+.ficha { max-width: 680px; }
+.ficha-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+.ficha-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--color-blue-bg); color: var(--color-blue-text); font-size: 16px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ficha-nombre { font-size: 17px; font-weight: 500; }
+.ficha-email  { font-size: 12px; color: var(--color-text-muted); }
+.ficha-section { margin-bottom: 1.5rem; }
+.ficha-section-title { font-size: 12px; font-weight: 500; color: var(--color-text-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 0.5px solid var(--color-border); }
+.ficha-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; padding-top: 1rem; border-top: 0.5px solid var(--color-border); }
 
 /* HORARIO */
 .horario-toolbar { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
@@ -157,16 +185,18 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
 .h-table th.bloque-col { text-align: left; width: 90px; }
 .h-table td { padding: 3px 4px; border: 0.5px solid var(--color-border); vertical-align: top; height: 44px; }
 .h-table td.bloque-header { font-size: 11px; color: var(--color-text-faint); padding: 4px 6px; background: var(--color-bg); white-space: nowrap; }
-.celda { border-radius: 4px; padding: 3px 5px; font-size: 11px; height: 100%; }
-.celda-mat { background: var(--color-blue-bg); color: var(--color-blue-text); }
-.celda-ef  { background: var(--color-green-bg); color: var(--color-green-text); }
-.celda-ing { background: var(--color-purple-bg); color: var(--color-purple-text); }
-.mat-nombre { font-weight: 500; display: block; }
-.mat-prof { opacity: 0.75; display: block; }
 
 /* TOAST */
-.toast { position: fixed; bottom: 20px; right: 20px; background: var(--color-surface); border: 0.5px solid var(--color-border-strong); border-radius: var(--radius); padding: 10px 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 100; }
+.toast { position: fixed; bottom: 20px; right: 20px; background: var(--color-surface); border: 0.5px solid var(--color-border-strong); border-radius: var(--radius); padding: 10px 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
 .toast.show { opacity: 1; }
+
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 200; display: flex; align-items: center; justify-content: center; }
+.modal-overlay.hidden { display: none; }
+.modal-box { background: var(--color-surface); border-radius: var(--radius-lg); padding: 24px; max-width: 380px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+.modal-title { font-size: 15px; font-weight: 500; margin-bottom: 8px; }
+.modal-sub   { font-size: 13px; color: var(--color-text-muted); margin-bottom: 1.25rem; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
 </style>
 </head>
 <body>
@@ -225,8 +255,8 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
     <div class="section active" id="section-dashboard">
       <p class="page-title">Dashboard</p>
       <p class="page-sub" id="dash-sub">Cargando datos...</p>
-      <div class="metrics" id="dash-metrics">
-        <div class="metric"><div class="metric-label">Profesores</div><div class="metric-value" id="m-profesores">—</div></div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">Profesores activos</div><div class="metric-value" id="m-profesores">—</div></div>
         <div class="metric"><div class="metric-label">Materias</div><div class="metric-value" id="m-materias">—</div></div>
         <div class="metric"><div class="metric-label">Cursos activos</div><div class="metric-value" id="m-cursos">—</div></div>
         <div class="metric"><div class="metric-label">Ciclo</div><div class="metric-value" id="m-ciclo">—</div></div>
@@ -234,15 +264,15 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
       <div class="status-grid">
         <div class="card">
           <div style="font-size:13px;font-weight:500;margin-bottom:10px">Estado del sistema</div>
-          <div class="status-row"><span class="status-label"><span class="dot dot-ok"></span>Conexión</span><span id="st-conexion" style="font-size:12px;color:var(--color-text-muted)">OK</span></div>
+          <div class="status-row"><span class="status-label"><span class="dot dot-ok"></span>Conexión</span><span style="font-size:12px;color:var(--color-text-muted)">OK</span></div>
           <div class="status-row"><span class="status-label"><span class="dot dot-ok"></span>Base de datos</span><span style="font-size:12px;color:var(--color-text-muted)">Google Sheets</span></div>
           <div class="status-row"><span class="status-label"><span class="dot" id="dot-reglas"></span>Reglas activas</span><span id="st-reglas" style="font-size:12px;color:var(--color-text-muted)">—</span></div>
         </div>
         <div class="card">
           <div style="font-size:13px;font-weight:500;margin-bottom:10px">Acceso rápido</div>
           <div style="display:flex;flex-direction:column;gap:8px">
-            <button onclick="goTo('profesores')"><i class="ti ti-plus"></i> Nuevo profesor</button>
-            <button onclick="goTo('materias')"><i class="ti ti-plus"></i> Nueva materia</button>
+            <button onclick="goTo('profesores')"><i class="ti ti-users"></i> Ver profesores</button>
+            <button onclick="goTo('materias')"><i class="ti ti-book"></i> Ver materias</button>
             <button onclick="goTo('horario')"><i class="ti ti-calendar"></i> Ver horario</button>
           </div>
         </div>
@@ -262,9 +292,7 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
           <select id="sel-año"><option>1° año</option><option>2° año</option><option>3° año</option><option>4° año</option><option>5° año</option><option>6° año</option></select>
           <select id="sel-div"><option>División A</option><option>División B</option><option>División C</option></select>
         </div>
-        <div id="filtro-prof" style="display:none">
-          <select id="sel-prof"></select>
-        </div>
+        <div id="filtro-prof" style="display:none"><select id="sel-prof"></select></div>
         <div class="toolbar-sep"></div>
         <div class="mode-btn active" id="btn-consulta" onclick="setModo('consulta')">Consulta</div>
         <div class="mode-btn" id="btn-edicion" onclick="setModo('edicion')">Edición</div>
@@ -280,10 +308,7 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
       </div>
       <div style="overflow-x:auto">
         <table class="h-table">
-          <thead><tr>
-            <th class="bloque-col">Bloque</th>
-            <th>Lunes</th><th>Martes</th><th>Miércoles</th><th>Jueves</th><th>Viernes</th>
-          </tr></thead>
+          <thead><tr><th class="bloque-col">Bloque</th><th>Lunes</th><th>Martes</th><th>Miércoles</th><th>Jueves</th><th>Viernes</th></tr></thead>
           <tbody id="horario-body"></tbody>
         </table>
       </div>
@@ -291,19 +316,25 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
 
     <!-- PROFESORES -->
     <div class="section" id="section-profesores">
-      <p class="page-title">Profesores</p>
-      <p class="page-sub">Carga y gestión de docentes</p>
-      <div class="wizard" id="wizard-prof">
-        <div class="steps" id="steps-prof"></div>
-        <div id="panels-prof"></div>
+      <div id="prof-listado"></div>
+      <div id="prof-wizard" style="display:none">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem">
+          <button class="btn-back" onclick="volverListadoProf()"><i class="ti ti-arrow-left"></i> Volver</button>
+          <span style="font-size:13px;color:var(--color-text-muted)">Nuevo profesor</span>
+        </div>
+        <div class="wizard">
+          <div class="steps" id="steps-prof"></div>
+          <div id="panels-prof"></div>
+        </div>
       </div>
+      <div id="prof-ficha" style="display:none"></div>
     </div>
 
     <!-- MATERIAS -->
     <div class="section" id="section-materias">
       <p class="page-title">Materias</p>
       <p class="page-sub">Carga y gestión de materias y carga horaria</p>
-      <div class="wizard" id="wizard-mat">
+      <div class="wizard">
         <div class="steps" id="steps-mat"></div>
         <div id="panels-mat"></div>
       </div>
@@ -312,7 +343,7 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
     <!-- CURSOS -->
     <div class="section" id="section-cursos">
       <p class="page-title">Cursos</p>
-      <p class="page-sub">18 cursos precargados. Podés editar o desactivar.</p>
+      <p class="page-sub">18 cursos precargados. Podés activar o desactivar.</p>
       <div id="cursos-container"></div>
     </div>
 
@@ -343,21 +374,34 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
 
 <div class="toast" id="toast"></div>
 
+<!-- MODAL CONFIRMACIÓN -->
+<div class="modal-overlay hidden" id="modal-confirm">
+  <div class="modal-box">
+    <p class="modal-title" id="modal-title">¿Confirmamos los cambios?</p>
+    <p class="modal-sub"  id="modal-sub"></p>
+    <div class="modal-actions">
+      <button onclick="cerrarModal()">Cancelar</button>
+      <button class="primary" id="modal-ok-btn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============================================================
-// API
+// CONFIG
 // ============================================================
 const API_URL = 'https://script.google.com/macros/s/AKfycbw3x0X1AhXCsMKooFiefKMPQPko8Ytek96tWnDg7jcH2Wfc76xpMQhRjQ0DmnlQX2pc6w/exec';
 const USUARIO = { email: 'maxi.rodriguez@colegioandersen.org', nombre: 'Maxi Rodriguez', rol: 'admin' };
 let _cache = {};
 
+// ============================================================
+// API
+// ============================================================
 async function apiGet(accion, entidad) {
   const key = entidad || accion;
   if (_cache[key]) return _cache[key];
-  const url = entidad
-    ? `${API_URL}?accion=${accion}&entidad=${entidad}`
-    : `${API_URL}?accion=${accion}`;
-  const res = await fetch(url);
+  const url  = entidad ? `${API_URL}?accion=${accion}&entidad=${entidad}` : `${API_URL}?accion=${accion}`;
+  const res  = await fetch(url);
   const json = await res.json();
   if (!json.ok) throw new Error(json.error);
   _cache[key] = json.data;
@@ -367,16 +411,15 @@ async function apiGet(accion, entidad) {
 async function apiPost(accion, entidad, datos, id) {
   const body = { accion, entidad, datos, email: USUARIO.email };
   if (id !== undefined) body.id = id;
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(body),
-  });
+  const res  = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(body) });
   const json = await res.json();
   if (!json.ok) throw new Error(json.error);
   delete _cache[entidad ? entidad.toUpperCase() : accion];
   return json.data;
 }
+
+function isTruthy(v) { return v === true || v === 'true' || v === 'TRUE'; }
+function parseJSON(str, fallback) { try { return JSON.parse(str); } catch { return fallback; } }
 
 // ============================================================
 // NAVEGACIÓN
@@ -389,7 +432,7 @@ function goTo(section) {
   if (section === 'horario')    buildHorario();
   if (section === 'cursos')     renderCursos();
   if (section === 'reglas')     renderReglas();
-  if (section === 'profesores') initWizardProf();
+  if (section === 'profesores') renderListadoProf();
   if (section === 'materias')   initWizardMat();
 }
 
@@ -397,120 +440,277 @@ function goTo(section) {
 // INIT
 // ============================================================
 async function init() {
-  // Usuario
   const ini = USUARIO.nombre.split(' ').map(p => p[0]).join('').slice(0,2).toUpperCase();
   document.getElementById('user-initials').textContent = ini;
-  document.getElementById('user-name').textContent = USUARIO.nombre;
-  document.getElementById('user-role').textContent = USUARIO.rol;
-
-  // Test conexión
+  document.getElementById('user-name').textContent     = USUARIO.nombre;
+  document.getElementById('user-role').textContent     = USUARIO.rol;
   try {
-    const config = await apiGet('config');
+    const cfg = await apiGet('config');
     document.getElementById('conn-dot').classList.add('ok');
-    document.getElementById('conn-label').textContent = 'Conectado';
-    document.getElementById('m-ciclo').textContent = config.ciclo_activo;
-    document.getElementById('dash-sub').textContent = `Estado general — ciclo ${config.ciclo_activo}`;
+    document.getElementById('conn-label').textContent  = 'Conectado';
+    document.getElementById('m-ciclo').textContent     = cfg.ciclo_activo;
+    document.getElementById('dash-sub').textContent    = `Estado general — ciclo ${cfg.ciclo_activo}`;
   } catch {
     document.getElementById('conn-dot').classList.add('err');
-    document.getElementById('conn-label').textContent = 'Sin conexión';
+    document.getElementById('conn-label').textContent  = 'Sin conexión';
   }
-
-  // Métricas dashboard
   try {
     const [profs, mats, cursos, reglas] = await Promise.all([
-      apiGet('leer','PROFESORES'),
-      apiGet('leer','MATERIAS'),
-      apiGet('leer','CURSOS'),
-      apiGet('leer','REGLAS'),
+      apiGet('leer','PROFESORES'), apiGet('leer','MATERIAS'),
+      apiGet('leer','CURSOS'),     apiGet('leer','REGLAS'),
     ]);
-    document.getElementById('m-profesores').textContent = profs.filter(p => p.activo === true || p.activo === 'true' || p.activo === 'TRUE').length;
-    document.getElementById('m-materias').textContent = mats.filter(m => m.activa === true || m.activa === 'true' || m.activa === 'TRUE').length;
-    document.getElementById('m-cursos').textContent = cursos.filter(c => c.activo === true || c.activo === 'true' || c.activo === 'TRUE').length;
-    const reglasActivas = reglas.filter(r => r.activa === true || r.activa === 'true' || r.activa === 'TRUE').length;
-    document.getElementById('st-reglas').textContent = reglasActivas + ' activas';
-    document.getElementById('dot-reglas').className = 'dot ' + (reglasActivas > 0 ? 'dot-ok' : 'dot-warn');
+    document.getElementById('m-profesores').textContent = profs.filter(p => isTruthy(p.activo)).length;
+    document.getElementById('m-materias').textContent   = mats.filter(m => isTruthy(m.activa)).length;
+    document.getElementById('m-cursos').textContent     = cursos.filter(c => isTruthy(c.activo)).length;
+    const ra = reglas.filter(r => isTruthy(r.activa)).length;
+    document.getElementById('st-reglas').textContent   = ra + ' activas';
+    document.getElementById('dot-reglas').className    = 'dot ' + (ra > 0 ? 'dot-ok' : 'dot-warn');
+  } catch(e) { console.warn('Error métricas:', e); }
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+let _modalCb = null;
+function confirmar(titulo, sub, cb) {
+  document.getElementById('modal-title').textContent = titulo;
+  document.getElementById('modal-sub').textContent   = sub;
+  _modalCb = cb;
+  document.getElementById('modal-confirm').classList.remove('hidden');
+}
+function cerrarModal() { document.getElementById('modal-confirm').classList.add('hidden'); _modalCb = null; }
+document.getElementById('modal-ok-btn').onclick = async () => { cerrarModal(); if (_modalCb) await _modalCb(); };
+
+// ============================================================
+// PROFESORES — BLOQUES (desde API, con fallback)
+// ============================================================
+const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes'];
+let _bloquesCache = null;
+
+async function getBloques() {
+  if (_bloquesCache) return _bloquesCache;
+  try {
+    const todos = await apiGet('leer','BLOQUES');
+    const academicos = todos.filter(b => b.tipo === 'academico').sort((a,b) => Number(a.numero) - Number(b.numero));
+    if (academicos.length) {
+      _bloquesCache = academicos.map(b => ({ num: Number(b.numero), label: b.numero + '°', hora: b.hora_inicio + '–' + b.hora_fin }));
+      return _bloquesCache;
+    }
+  } catch {}
+  _bloquesCache = [
+    {num:1,label:'1°',hora:'8:15–8:55'},{num:2,label:'2°',hora:'8:55–9:35'},
+    {num:3,label:'3°',hora:'9:55–10:35'},{num:4,label:'4°',hora:'10:35–11:15'},
+    {num:5,label:'5°',hora:'12:30–13:05'},{num:6,label:'6°',hora:'13:05–13:40'},
+    {num:7,label:'7°',hora:'13:50–14:25'},{num:8,label:'8°',hora:'14:25–15:10'},
+    {num:9,label:'9°',hora:'15:20–15:55'},{num:10,label:'10°',hora:'15:55–16:30'},
+  ];
+  return _bloquesCache;
+}
+
+function initDisponibilidad(bloques) {
+  const d = {};
+  DIAS.forEach(dia => { d[dia] = {}; bloques.forEach(b => d[dia][b.num] = false); });
+  return d;
+}
+
+// ============================================================
+// PROFESORES — LISTADO
+// ============================================================
+let _profFiltros = { materia:'', estado:'activos', horas:'' };
+
+async function renderListadoProf() {
+  mostrarModoProf('listado');
+  const cont = document.getElementById('prof-listado');
+  cont.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div>
+        <p class="page-title">Profesores</p>
+        <p class="page-sub" style="margin-bottom:0">Listado de docentes</p>
+      </div>
+      <button class="primary" onclick="mostrarWizardProf()"><i class="ti ti-plus"></i> Nuevo profesor</button>
+    </div>
+    <div class="card" style="margin-bottom:1rem;padding:12px 16px">
+      <div class="list-toolbar">
+        <div class="field"><label>Materia</label><select id="f-materia" onchange="aplicarFiltrosProf()"><option value="">Todas</option></select></div>
+        <div class="field"><label>Estado</label>
+          <select id="f-estado" onchange="aplicarFiltrosProf()">
+            <option value="activos">Activos</option>
+            <option value="inactivos">Inactivos</option>
+            <option value="todos">Todos</option>
+          </select>
+        </div>
+        <div class="field"><label>Horas de contrato</label>
+          <select id="f-horas" onchange="aplicarFiltrosProf()">
+            <option value="">Sin filtro</option>
+            <option value="sin_datos">Sin datos</option>
+            <option value="menos20">Menos de 20</option>
+            <option value="mas20">Más de 20</option>
+          </select>
+        </div>
+        <button onclick="limpiarFiltrosProf()" class="btn-sm" style="align-self:flex-end"><i class="ti ti-x"></i> Limpiar</button>
+      </div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div id="prof-tabla-wrap"><div class="loading" style="padding:1.5rem"><div class="spinner"></div> Cargando...</div></div>
+    </div>`;
+  await cargarTablaProf();
+}
+
+async function cargarTablaProf() {
+  try {
+    const [profs, mats] = await Promise.all([apiGet('leer','PROFESORES'), apiGet('leer','MATERIAS')]);
+    const sel = document.getElementById('f-materia');
+    if (sel && sel.options.length === 1) {
+      mats.forEach(m => { const o = document.createElement('option'); o.value = m.nombre; o.textContent = m.nombre; sel.appendChild(o); });
+      sel.value = _profFiltros.materia;
+    }
+    const fe = document.getElementById('f-estado'); if (fe) fe.value = _profFiltros.estado;
+    const fh = document.getElementById('f-horas');  if (fh) fh.value = _profFiltros.horas;
+    renderTablaProf(profs);
   } catch(e) {
-    console.warn('Error cargando métricas:', e);
+    const w = document.getElementById('prof-tabla-wrap');
+    if (w) w.innerHTML = `<p style="padding:1.5rem;color:var(--color-red-text)">Error: ${e.message}</p>`;
   }
 }
 
-// ============================================================
-// WIZARD PROFESORES
-// ============================================================
-const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes'];
-const BLOQUES = [
-  {num:1,label:'1°',hora:'8:15–8:55'},{num:2,label:'2°',hora:'8:55–9:35'},
-  {num:3,label:'3°',hora:'9:55–10:35'},{num:4,label:'4°',hora:'10:35–11:15'},
-  {num:5,label:'5°',hora:'12:30–13:05'},{num:6,label:'6°',hora:'13:05–13:40'},
-  {num:7,label:'7°',hora:'13:50–14:25'},{num:8,label:'8°',hora:'14:25–15:10'},
-  {num:9,label:'9°',hora:'15:20–15:55'},{num:10,label:'10°',hora:'15:55–16:30'},
-];
-
-let profState = { step: 1, materias: [], disponibilidad: {} };
-
-function resetProfState() {
-  profState = { step: 1, materias: [], disponibilidad: {} };
-  DIAS.forEach(d => { profState.disponibilidad[d] = {}; BLOQUES.forEach(b => profState.disponibilidad[d][b.num] = false); });
+function aplicarFiltrosProf() {
+  _profFiltros.materia = document.getElementById('f-materia')?.value || '';
+  _profFiltros.estado  = document.getElementById('f-estado')?.value  || 'activos';
+  _profFiltros.horas   = document.getElementById('f-horas')?.value   || '';
+  renderTablaProf(_cache['PROFESORES'] || []);
 }
 
+function limpiarFiltrosProf() {
+  _profFiltros = { materia:'', estado:'activos', horas:'' };
+  ['f-materia','f-estado','f-horas'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = id === 'f-estado' ? 'activos' : '';
+  });
+  renderTablaProf(_cache['PROFESORES'] || []);
+}
+
+function renderTablaProf(profs) {
+  let lista = [...profs];
+  if (_profFiltros.estado === 'activos')   lista = lista.filter(p => isTruthy(p.activo));
+  if (_profFiltros.estado === 'inactivos') lista = lista.filter(p => !isTruthy(p.activo));
+  if (_profFiltros.materia) {
+    lista = lista.filter(p => { const m = parseJSON(p.materias, []); return Array.isArray(m) && m.includes(_profFiltros.materia); });
+  }
+  if (_profFiltros.horas === 'sin_datos') lista = lista.filter(p => !p.horas_contrato || p.horas_contrato === '');
+  if (_profFiltros.horas === 'menos20')  lista = lista.filter(p => p.horas_contrato && Number(p.horas_contrato) < 20);
+  if (_profFiltros.horas === 'mas20')    lista = lista.filter(p => p.horas_contrato && Number(p.horas_contrato) > 20);
+  lista.sort((a,b) => String(a.apellido).localeCompare(String(b.apellido), 'es'));
+
+  const wrap = document.getElementById('prof-tabla-wrap');
+  if (!wrap) return;
+
+  if (!lista.length) {
+    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-users"></i>No hay profesores que coincidan con los filtros.</div>`;
+    return;
+  }
+
+  const rows = lista.map(p => {
+    const activo  = isTruthy(p.activo);
+    const chips   = parseJSON(p.materias, []);
+    const visibles = Array.isArray(chips) ? chips.slice(0,3) : [];
+    const resto    = Array.isArray(chips) ? chips.length - 3 : 0;
+    const horas    = p.horas_contrato
+      ? `${p.horas_contrato} ${p.unidad_contrato === 'modulos' ? 'mód.' : 'hs.'}`
+      : `<span style="color:var(--color-text-faint)">—</span>`;
+    const chipsHtml = visibles.map(m => `<span class="chip-mini">${m}</span>`).join('')
+      + (resto > 0 ? `<span class="chip-mini-more">+${resto}</span>` : '');
+    return `<tr class="${activo?'':'inactivo'}" onclick="abrirFichaProf(${p.id})">
+      <td><div style="font-weight:500">${p.apellido}, ${p.nombre}</div><div style="font-size:12px;color:var(--color-text-muted)">${p.email||'—'}</div></td>
+      <td><div class="materias-resumen">${chipsHtml || '<span style="color:var(--color-text-faint);font-size:12px">Sin asignar</span>'}</div></td>
+      <td>${horas}</td>
+      <td><span class="badge ${activo?'badge-admin':'badge-inactivo'}">${activo?'Activo':'Inactivo'}</span></td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<table class="prof-table">
+    <thead><tr><th>Docente</th><th>Materias</th><th>Hs. contrato</th><th>Estado</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// ============================================================
+// PROFESORES — MODOS
+// ============================================================
+function mostrarModoProf(modo) {
+  document.getElementById('prof-listado').style.display = modo === 'listado' ? 'block' : 'none';
+  document.getElementById('prof-wizard').style.display  = modo === 'wizard'  ? 'block' : 'none';
+  document.getElementById('prof-ficha').style.display   = modo === 'ficha'   ? 'block' : 'none';
+}
+function volverListadoProf() { delete _cache['PROFESORES']; renderListadoProf(); }
+function mostrarWizardProf() { mostrarModoProf('wizard'); initWizardProf(); }
+
+// ============================================================
+// PROFESORES — WIZARD ALTA
+// ============================================================
+let profState = {};
+
 async function initWizardProf() {
-  resetProfState();
-  renderStepsProf();
-  await renderPanelProf(1);
+  const bl = await getBloques();
+  profState = { step:1, materias:[], disponibilidad: initDisponibilidad(bl) };
+  renderStepsProf(); renderPanelProf(1);
 }
 
 function renderStepsProf() {
   const labels = ['Datos','Materias','Disponibilidad','Confirmar'];
-  const steps = document.getElementById('steps-prof');
-  steps.innerHTML = '';
-  labels.forEach((l, i) => {
-    const n = i + 1;
-    const cls = n < profState.step ? 'done' : n === profState.step ? 'active' : '';
-    steps.innerHTML += `<div class="step-dot ${cls}">
-      <div class="dot-circle">${n < profState.step ? '<i class="ti ti-check" style="font-size:13px"></i>' : n}</div>
-      <span class="step-label">${l}</span>
-    </div>${i < labels.length-1 ? '<div class="step-line"></div>' : ''}`;
-  });
+  document.getElementById('steps-prof').innerHTML = labels.map((l,i) => {
+    const n = i+1, cls = n < profState.step ? 'done' : n === profState.step ? 'active' : '';
+    return `<div class="step-dot ${cls}"><div class="dot-circle">${n < profState.step ? '<i class="ti ti-check" style="font-size:13px"></i>' : n}</div><span class="step-label">${l}</span></div>${i < labels.length-1 ? '<div class="step-line"></div>' : ''}`;
+  }).join('');
 }
 
 async function renderPanelProf(step) {
-  profState.step = step;
-  renderStepsProf();
+  profState.step = step; renderStepsProf();
   const cont = document.getElementById('panels-prof');
+  const bl   = await getBloques();
 
   if (step === 1) {
     cont.innerHTML = `
       <p class="panel-title">Datos del profesor</p>
       <p class="panel-sub">Completá los datos básicos del docente.</p>
       <div class="field-row">
-        <div class="field"><label>Apellido</label><input id="p-apellido" placeholder="García" /></div>
-        <div class="field"><label>Nombre</label><input id="p-nombre" placeholder="Laura" /></div>
+        <div class="field"><label>Apellido *</label><input id="p-apellido" value="${profState.apellido||''}" placeholder="García" /></div>
+        <div class="field"><label>Nombre *</label><input id="p-nombre" value="${profState.nombre||''}" placeholder="Laura" /></div>
       </div>
-      <div class="field"><label>Email institucional</label><input id="p-email" type="email" placeholder="lgarcia@colegioandersen.org" /></div>
-      <div class="btn-row"><span></span><button onclick="avanzarProf2()">Siguiente <i class="ti ti-arrow-right"></i></button></div>`;
+      <div class="field"><label>Email institucional</label><input id="p-email" type="email" value="${profState.email||''}" placeholder="lgarcia@colegioandersen.org" /></div>
+      <div class="field-row">
+        <div class="field"><label>Horas de contrato</label><input id="p-horas" type="number" min="1" max="40" value="${profState.horas_contrato||''}" placeholder="Ej: 20" /></div>
+        <div class="field"><label>Unidad</label>
+          <select id="p-unidad">
+            <option value="horas_reloj" ${profState.unidad_contrato==='horas_reloj'||!profState.unidad_contrato?'selected':''}>Horas reloj</option>
+            <option value="modulos" ${profState.unidad_contrato==='modulos'?'selected':''}>Módulos</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row"><span></span><button class="primary" onclick="avanzarProf2()">Siguiente <i class="ti ti-arrow-right"></i></button></div>`;
   }
 
   if (step === 2) {
-    let materiasList = [];
-    try { materiasList = await apiGet('leer','MATERIAS'); } catch {}
-    const nombres = materiasList.length ? materiasList.map(m => m.nombre) : ['Matemática','Lengua','Historia','Geografía','Biología','Física','Química','Inglés','Educación Física','Arte','IT','Filosofía'];
+    let mlist = [];
+    try { mlist = await apiGet('leer','MATERIAS'); } catch {}
+    const nombres = mlist.length ? mlist.filter(m => isTruthy(m.activa)).map(m => m.nombre)
+      : ['Matemática','Lengua','Historia','Geografía','Biología','Física','Química','Inglés','Educación Física','Arte','IT','Filosofía'];
     cont.innerHTML = `
       <p class="panel-title">Materias que dicta</p>
       <p class="panel-sub">Seleccioná todas las materias que puede dar este docente.</p>
-      <div class="materias-chips">${nombres.map(m => `<div class="chip ${profState.materias.includes(m)?'selected':''}" onclick="toggleMateria(this,'${m}')">${m}</div>`).join('')}</div>
+      <div class="materias-chips">${nombres.map(m => `<div class="chip ${profState.materias.includes(m)?'selected':''}" onclick="toggleMateriaWiz(this,'${m}')">${m}</div>`).join('')}</div>
       <div class="btn-row">
         <button class="btn-back" onclick="renderPanelProf(1)"><i class="ti ti-arrow-left"></i> Atrás</button>
-        <button onclick="renderPanelProf(3)">Siguiente <i class="ti ti-arrow-right"></i></button>
+        <button class="primary" onclick="renderPanelProf(3)">Siguiente <i class="ti ti-arrow-right"></i></button>
       </div>`;
   }
 
   if (step === 3) {
     let rows = `<thead><tr><th class="blq-col">Bloque</th>${DIAS.map(d=>`<th>${d}</th>`).join('')}</tr></thead><tbody>`;
-    BLOQUES.forEach(b => {
+    bl.forEach(b => {
       rows += `<tr><td class="blq-label">${b.label}<span class="hora-label">${b.hora}</span></td>`;
       DIAS.forEach(d => {
-        const on = profState.disponibilidad[d][b.num];
-        rows += `<td><div class="disp-cell ${on?'on':''}" id="dc-${d}-${b.num}" onclick="toggleDisp('${d}',${b.num})"></div></td>`;
+        const on = profState.disponibilidad[d]?.[b.num];
+        rows += `<td><div class="disp-cell ${on?'on':''}" id="dc-${d}-${b.num}" onclick="toggleDispWiz('${d}',${b.num})"></div></td>`;
       });
       rows += '</tr>';
     });
@@ -519,41 +719,33 @@ async function renderPanelProf(step) {
       <p class="panel-title">Disponibilidad horaria</p>
       <p class="panel-sub">Marcá los bloques en que el docente <strong>sí puede</strong> dar clases.</p>
       <div class="select-all-row">
-        <button class="btn-sm" onclick="setAllDisp(true)">Marcar todos</button>
-        <button class="btn-sm" onclick="setAllDisp(false)">Limpiar todo</button>
+        <button class="btn-sm" onclick="setAllDispWiz(true)">Marcar todos</button>
+        <button class="btn-sm" onclick="setAllDispWiz(false)">Limpiar todo</button>
       </div>
       <div style="overflow-x:auto"><table class="disp-table">${rows}</table></div>
-      <div class="legend">
-        <div class="legend-item"><div class="legend-dot on"></div> Disponible</div>
-        <div class="legend-item"><div class="legend-dot off"></div> No disponible</div>
-      </div>
+      <div class="legend"><div class="legend-item"><div class="legend-dot on"></div> Disponible</div><div class="legend-item"><div class="legend-dot off"></div> No disponible</div></div>
       <div class="btn-row">
         <button class="btn-back" onclick="renderPanelProf(2)"><i class="ti ti-arrow-left"></i> Atrás</button>
-        <button onclick="renderPanelProf(4)">Siguiente <i class="ti ti-arrow-right"></i></button>
+        <button class="primary" onclick="renderPanelProf(4)">Siguiente <i class="ti ti-arrow-right"></i></button>
       </div>`;
   }
 
   if (step === 4) {
-    const ap = profState.apellido || '—';
-    const nom = profState.nombre || '—';
-    const em = profState.email || '—';
-    const mats = profState.materias.join(', ') || '—';
-    const disp = DIAS.map(d => {
-      const bs = BLOQUES.filter(b => profState.disponibilidad[d][b.num]).map(b => b.label);
-      return bs.length ? `${d}: ${bs.join(', ')}` : null;
-    }).filter(Boolean).join(' | ') || 'Sin disponibilidad marcada';
+    const horas = profState.horas_contrato ? `${profState.horas_contrato} ${profState.unidad_contrato==='modulos'?'módulos':'horas reloj'}` : '—';
+    const disp  = DIAS.map(d => { const bs = bl.filter(b => profState.disponibilidad[d]?.[b.num]).map(b=>b.label); return bs.length ? `${d}: ${bs.join(', ')}` : null; }).filter(Boolean).join(' | ') || 'Sin disponibilidad marcada';
     cont.innerHTML = `
       <p class="panel-title">Confirmación</p>
       <p class="panel-sub">Revisá los datos antes de guardar.</p>
       <div class="summary-card">
-        <div class="summary-row"><span class="summary-label">Nombre</span><span class="summary-value">${ap}, ${nom}</span></div>
-        <div class="summary-row"><span class="summary-label">Email</span><span class="summary-value">${em}</span></div>
-        <div class="summary-row"><span class="summary-label">Materias</span><span class="summary-value">${mats}</span></div>
+        <div class="summary-row"><span class="summary-label">Nombre</span><span class="summary-value">${profState.apellido||'—'}, ${profState.nombre||'—'}</span></div>
+        <div class="summary-row"><span class="summary-label">Email</span><span class="summary-value">${profState.email||'—'}</span></div>
+        <div class="summary-row"><span class="summary-label">Horas de contrato</span><span class="summary-value">${horas}</span></div>
+        <div class="summary-row"><span class="summary-label">Materias</span><span class="summary-value">${profState.materias.join(', ')||'—'}</span></div>
         <div class="summary-row"><span class="summary-label">Disponibilidad</span><span class="summary-value" style="font-size:12px">${disp}</span></div>
       </div>
       <div class="btn-row">
         <button class="btn-back" onclick="renderPanelProf(3)"><i class="ti ti-arrow-left"></i> Atrás</button>
-        <button onclick="guardarProfesor()"><i class="ti ti-check"></i> Guardar profesor</button>
+        <button class="primary" onclick="guardarProfNuevo()"><i class="ti ti-check"></i> Guardar profesor</button>
       </div>`;
   }
 
@@ -562,217 +754,296 @@ async function renderPanelProf(step) {
       <div class="success-state">
         <div class="success-icon"><i class="ti ti-check"></i></div>
         <p class="success-title">Profesor guardado</p>
-        <p class="success-sub">Los datos fueron guardados en Google Sheets correctamente.</p>
-        <button onclick="initWizardProf()"><i class="ti ti-plus"></i> Cargar otro profesor</button>
+        <p class="success-sub">Los datos fueron guardados correctamente.</p>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button onclick="initWizardProf()"><i class="ti ti-plus"></i> Cargar otro</button>
+          <button class="primary" onclick="volverListadoProf()"><i class="ti ti-list"></i> Ver listado</button>
+        </div>
       </div>`;
   }
 }
 
 function avanzarProf2() {
-  profState.apellido = document.getElementById('p-apellido')?.value || '';
-  profState.nombre   = document.getElementById('p-nombre')?.value || '';
-  profState.email    = document.getElementById('p-email')?.value || '';
+  profState.apellido        = document.getElementById('p-apellido')?.value.trim() || '';
+  profState.nombre          = document.getElementById('p-nombre')?.value.trim()   || '';
+  profState.email           = document.getElementById('p-email')?.value.trim()    || '';
+  profState.horas_contrato  = document.getElementById('p-horas')?.value           || '';
+  profState.unidad_contrato = document.getElementById('p-unidad')?.value          || 'horas_reloj';
+  if (!profState.apellido || !profState.nombre) { showToast('Completá nombre y apellido', 'err'); return; }
   renderPanelProf(2);
 }
-
-function toggleMateria(el, nombre) {
-  if (profState.materias.includes(nombre)) {
-    profState.materias = profState.materias.filter(m => m !== nombre);
-    el.classList.remove('selected');
-  } else {
-    profState.materias.push(nombre);
-    el.classList.add('selected');
-  }
+function toggleMateriaWiz(el, nombre) {
+  if (profState.materias.includes(nombre)) { profState.materias = profState.materias.filter(m => m !== nombre); el.classList.remove('selected'); }
+  else { profState.materias.push(nombre); el.classList.add('selected'); }
 }
-
-function toggleDisp(dia, num) {
+function toggleDispWiz(dia, num) {
+  if (!profState.disponibilidad[dia]) profState.disponibilidad[dia] = {};
   profState.disponibilidad[dia][num] = !profState.disponibilidad[dia][num];
   const cell = document.getElementById(`dc-${dia}-${num}`);
   if (cell) cell.className = 'disp-cell ' + (profState.disponibilidad[dia][num] ? 'on' : '');
 }
-
-function setAllDisp(val) {
-  DIAS.forEach(d => BLOQUES.forEach(b => {
+async function setAllDispWiz(val) {
+  const bl = await getBloques();
+  DIAS.forEach(d => bl.forEach(b => {
+    if (!profState.disponibilidad[d]) profState.disponibilidad[d] = {};
     profState.disponibilidad[d][b.num] = val;
     const cell = document.getElementById(`dc-${d}-${b.num}`);
     if (cell) cell.className = 'disp-cell ' + (val ? 'on' : '');
   }));
 }
-
-async function guardarProfesor() {
-  const apellido = profState.apellido?.trim();
-  const nombre   = profState.nombre?.trim();
-  const email    = profState.email?.trim();
-  if (!apellido || !nombre) { showToast('Completá nombre y apellido', 'err'); return; }
+async function guardarProfNuevo() {
   try {
     await apiPost('crear','profesores',{
-      apellido, nombre, email,
-      activo: true,
-      materias: JSON.stringify(profState.materias),
-      disponibilidad: JSON.stringify(profState.disponibilidad),
+      apellido: profState.apellido, nombre: profState.nombre, email: profState.email,
+      activo: true, horas_contrato: profState.horas_contrato, unidad_contrato: profState.unidad_contrato,
+      materias: JSON.stringify(profState.materias), disponibilidad: JSON.stringify(profState.disponibilidad),
     });
     delete _cache['PROFESORES'];
     renderPanelProf(5);
     showToast('Profesor guardado correctamente');
-  } catch(e) {
-    showToast('Error al guardar: ' + e.message, 'err');
-  }
+  } catch(e) { showToast('Error al guardar: ' + e.message, 'err'); }
 }
 
 // ============================================================
-// WIZARD MATERIAS
+// PROFESORES — FICHA EDITABLE
 // ============================================================
-let matState = { step: 1, carga: {} };
-const AÑOS = ['1','2','3','4','5','6'];
+let fichaState = {};
 
-function resetMatState() {
-  matState = { step: 1, carga: {} };
-  AÑOS.forEach(a => matState.carga[a] = { activo: false, bloques: 0 });
+async function abrirFichaProf(id) {
+  mostrarModoProf('ficha');
+  const cont = document.getElementById('prof-ficha');
+  cont.innerHTML = '<div class="loading" style="padding:2rem"><div class="spinner"></div> Cargando ficha...</div>';
+  try {
+    const [profs, mats, bl] = await Promise.all([apiGet('leer','PROFESORES'), apiGet('leer','MATERIAS'), getBloques()]);
+    const prof = profs.find(p => String(p.id) === String(id));
+    if (!prof) throw new Error('Profesor no encontrado');
+
+    const mProf  = parseJSON(prof.materias, []);
+    const dProf  = parseJSON(prof.disponibilidad, initDisponibilidad(bl));
+    const activo = isTruthy(prof.activo);
+    const ini    = ((prof.apellido||'')[0]||'') + ((prof.nombre||'')[0]||'');
+
+    fichaState = {
+      id: prof.id, apellido: prof.apellido||'', nombre: prof.nombre||'', email: prof.email||'',
+      horas_contrato: prof.horas_contrato||'', unidad_contrato: prof.unidad_contrato||'horas_reloj',
+      materias: Array.isArray(mProf) ? [...mProf] : [],
+      disponibilidad: JSON.parse(JSON.stringify(dProf)),
+      activo,
+    };
+
+    const nombresMats = mats.filter(m => isTruthy(m.activa)).map(m => m.nombre);
+
+    let rowsDisp = `<thead><tr><th class="blq-col" style="text-align:left;padding:6px 4px;font-size:12px;color:var(--color-text-muted)">Bloque</th>${DIAS.map(d=>`<th style="font-size:12px;color:var(--color-text-muted);padding:6px 4px;text-align:center">${d}</th>`).join('')}</tr></thead><tbody>`;
+    bl.forEach(b => {
+      rowsDisp += `<tr><td class="blq-label">${b.label}<span class="hora-label">${b.hora}</span></td>`;
+      DIAS.forEach(d => {
+        const on = fichaState.disponibilidad[d]?.[b.num];
+        rowsDisp += `<td><div class="disp-cell ${on?'on':''}" id="fd-${d}-${b.num}" onclick="toggleDispFicha('${d}',${b.num})"></div></td>`;
+      });
+      rowsDisp += '</tr>';
+    });
+    rowsDisp += '</tbody>';
+
+    cont.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem">
+        <button class="btn-back" onclick="volverListadoProf()"><i class="ti ti-arrow-left"></i> Volver</button>
+        <span style="font-size:13px;color:var(--color-text-muted)">Ficha del profesor</span>
+      </div>
+      <div class="ficha">
+        <div class="ficha-header">
+          <div class="ficha-avatar">${ini.toUpperCase()}</div>
+          <div><div class="ficha-nombre">${prof.apellido}, ${prof.nombre}</div><div class="ficha-email">${prof.email||'—'}</div></div>
+          <span class="badge ${activo?'badge-admin':'badge-inactivo'}" style="margin-left:auto">${activo?'Activo':'Inactivo'}</span>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Datos básicos</div>
+          <div class="field-row">
+            <div class="field"><label>Apellido</label><input id="fi-apellido" value="${fichaState.apellido}" /></div>
+            <div class="field"><label>Nombre</label><input id="fi-nombre" value="${fichaState.nombre}" /></div>
+          </div>
+          <div class="field"><label>Email institucional</label><input id="fi-email" type="email" value="${fichaState.email}" /></div>
+          <div class="field-row">
+            <div class="field"><label>Horas de contrato</label><input id="fi-horas" type="number" min="1" max="40" value="${fichaState.horas_contrato}" placeholder="—" /></div>
+            <div class="field"><label>Unidad</label>
+              <select id="fi-unidad">
+                <option value="horas_reloj" ${fichaState.unidad_contrato==='horas_reloj'||!fichaState.unidad_contrato?'selected':''}>Horas reloj</option>
+                <option value="modulos" ${fichaState.unidad_contrato==='modulos'?'selected':''}>Módulos</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Materias que dicta</div>
+          <div class="materias-chips">${nombresMats.map(m => `<div class="chip ${fichaState.materias.includes(m)?'selected':''}" onclick="toggleMateriaFicha(this,'${m}')">${m}</div>`).join('')}</div>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Disponibilidad horaria</div>
+          <div class="select-all-row">
+            <button class="btn-sm" onclick="setAllDispFicha(true)">Marcar todos</button>
+            <button class="btn-sm" onclick="setAllDispFicha(false)">Limpiar todo</button>
+          </div>
+          <div style="overflow-x:auto"><table class="disp-table">${rowsDisp}</table></div>
+          <div class="legend"><div class="legend-item"><div class="legend-dot on"></div> Disponible</div><div class="legend-item"><div class="legend-dot off"></div> No disponible</div></div>
+        </div>
+
+        <div class="ficha-actions">
+          <button class="danger" onclick="confirmarBajaProf()">${activo ? '<i class="ti ti-user-off"></i> Dar de baja' : '<i class="ti ti-user-check"></i> Reactivar'}</button>
+          <button class="primary" onclick="guardarFichaProf()"><i class="ti ti-check"></i> Guardar cambios</button>
+        </div>
+      </div>`;
+  } catch(e) { cont.innerHTML = `<p style="color:var(--color-red-text);padding:1rem">Error: ${e.message}</p>`; }
 }
 
-async function initWizardMat() {
-  resetMatState();
-  renderStepsMat();
-  renderPanelMat(1);
+function toggleMateriaFicha(el, nombre) {
+  if (fichaState.materias.includes(nombre)) { fichaState.materias = fichaState.materias.filter(m => m !== nombre); el.classList.remove('selected'); }
+  else { fichaState.materias.push(nombre); el.classList.add('selected'); }
+}
+function toggleDispFicha(dia, num) {
+  if (!fichaState.disponibilidad[dia]) fichaState.disponibilidad[dia] = {};
+  fichaState.disponibilidad[dia][num] = !fichaState.disponibilidad[dia][num];
+  const cell = document.getElementById(`fd-${dia}-${num}`);
+  if (cell) cell.className = 'disp-cell ' + (fichaState.disponibilidad[dia][num] ? 'on' : '');
+}
+async function setAllDispFicha(val) {
+  const bl = await getBloques();
+  DIAS.forEach(d => bl.forEach(b => {
+    if (!fichaState.disponibilidad[d]) fichaState.disponibilidad[d] = {};
+    fichaState.disponibilidad[d][b.num] = val;
+    const cell = document.getElementById(`fd-${d}-${b.num}`);
+    if (cell) cell.className = 'disp-cell ' + (val ? 'on' : '');
+  }));
 }
 
-function renderStepsMat() {
-  const labels = ['Datos','Carga horaria','Confirmar'];
-  const steps = document.getElementById('steps-mat');
-  steps.innerHTML = '';
-  labels.forEach((l, i) => {
-    const n = i + 1;
-    const cls = n < matState.step ? 'done' : n === matState.step ? 'active' : '';
-    steps.innerHTML += `<div class="step-dot ${cls}">
-      <div class="dot-circle">${n < matState.step ? '<i class="ti ti-check" style="font-size:13px"></i>' : n}</div>
-      <span class="step-label">${l}</span>
-    </div>${i < labels.length-1 ? '<div class="step-line"></div>' : ''}`;
+function guardarFichaProf() {
+  confirmar('¿Confirmamos los cambios?', `Se actualizarán los datos de ${document.getElementById('fi-apellido')?.value || fichaState.apellido}.`, async () => {
+    try {
+      await apiPost('editar','profesores', {
+        apellido:        document.getElementById('fi-apellido')?.value.trim() || fichaState.apellido,
+        nombre:          document.getElementById('fi-nombre')?.value.trim()   || fichaState.nombre,
+        email:           document.getElementById('fi-email')?.value.trim()    || fichaState.email,
+        horas_contrato:  document.getElementById('fi-horas')?.value           || '',
+        unidad_contrato: document.getElementById('fi-unidad')?.value          || 'horas_reloj',
+        materias:        JSON.stringify(fichaState.materias),
+        disponibilidad:  JSON.stringify(fichaState.disponibilidad),
+      }, fichaState.id);
+      delete _cache['PROFESORES'];
+      showToast('Cambios guardados');
+      volverListadoProf();
+    } catch(e) { showToast('Error: ' + e.message, 'err'); }
   });
 }
 
-function renderPanelMat(step) {
-  matState.step = step;
-  renderStepsMat();
-  const cont = document.getElementById('panels-mat');
+function confirmarBajaProf() {
+  const nuevo  = !fichaState.activo;
+  const accion = nuevo ? 'reactivar' : 'dar de baja';
+  confirmar('¿Confirmamos los cambios?', `Vas a ${accion} a ${fichaState.apellido}, ${fichaState.nombre}.`, async () => {
+    try {
+      await apiPost('editar','profesores', { activo: nuevo }, fichaState.id);
+      delete _cache['PROFESORES'];
+      showToast(nuevo ? 'Profesor reactivado' : 'Profesor dado de baja');
+      volverListadoProf();
+    } catch(e) { showToast('Error: ' + e.message, 'err'); }
+  });
+}
 
+// ============================================================
+// MATERIAS
+// ============================================================
+const AÑOS = ['1','2','3','4','5','6'];
+let matState = {};
+function resetMatState() { matState = { step:1, carga:{} }; AÑOS.forEach(a => matState.carga[a] = { activo:false, bloques:0 }); }
+async function initWizardMat() { resetMatState(); renderStepsMat(); renderPanelMat(1); }
+
+function renderStepsMat() {
+  const labels = ['Datos','Carga horaria','Confirmar'];
+  document.getElementById('steps-mat').innerHTML = labels.map((l,i) => {
+    const n = i+1, cls = n < matState.step ? 'done' : n === matState.step ? 'active' : '';
+    return `<div class="step-dot ${cls}"><div class="dot-circle">${n < matState.step ? '<i class="ti ti-check" style="font-size:13px"></i>' : n}</div><span class="step-label">${l}</span></div>${i < labels.length-1 ? '<div class="step-line"></div>' : ''}`;
+  }).join('');
+}
+
+function renderPanelMat(step) {
+  matState.step = step; renderStepsMat();
+  const cont = document.getElementById('panels-mat');
   if (step === 1) {
     cont.innerHTML = `
       <p class="panel-title">Datos de la materia</p>
       <p class="panel-sub">Nombre y área curricular.</p>
-      <div class="field"><label>Nombre de la materia</label><input id="m-nombre" placeholder="Ej: Matemática" /></div>
-      <div class="field">
-        <label>Área curricular <span style="color:var(--color-text-faint)">(opcional)</span></label>
+      <div class="field"><label>Nombre *</label><input id="m-nombre" value="${matState.nombre||''}" placeholder="Ej: Matemática" /></div>
+      <div class="field"><label>Área curricular <span style="color:var(--color-text-faint)">(opcional)</span></label>
         <select id="m-area">
           <option value="">Sin área asignada</option>
-          <option>Ciencias Exactas</option><option>Ciencias Naturales</option>
-          <option>Ciencias Sociales</option><option>Lengua y Literatura</option>
-          <option>Lenguas Extranjeras</option><option>Educación Física</option>
+          <option>Ciencias Exactas</option><option>Ciencias Naturales</option><option>Ciencias Sociales</option>
+          <option>Lengua y Literatura</option><option>Lenguas Extranjeras</option><option>Educación Física</option>
           <option>Arte</option><option>Formación Ética</option><option>Tecnología</option>
         </select>
-        <span style="font-size:11px;color:var(--color-text-faint)">Solo para registro interno.</span>
       </div>
-      <div class="btn-row"><span></span><button onclick="avanzarMat2()">Siguiente <i class="ti ti-arrow-right"></i></button></div>`;
+      <div class="btn-row"><span></span><button class="primary" onclick="avanzarMat2()">Siguiente <i class="ti ti-arrow-right"></i></button></div>`;
   }
-
   if (step === 2) {
-    let rows = AÑOS.map(a => {
-      const activo = matState.carga[a].activo;
-      const bloques = matState.carga[a].bloques;
+    const rows = AÑOS.map(a => {
+      const activo = matState.carga[a].activo, bl = matState.carga[a].bloques;
       return `<tr>
         <td style="font-size:13px;font-weight:500;padding:8px 12px">${a}° año</td>
-        <td style="text-align:center;padding:8px">
-          <button class="btn-sm ${activo?'chip selected':'chip'}" onclick="toggleAño('${a}')" style="border-radius:20px">${activo?'Sí':'No'}</button>
-        </td>
-        <td style="text-align:center;padding:8px">
-          <input type="number" id="bl-${a}" min="1" max="15" value="${bloques||''}" placeholder="0" style="width:60px;text-align:center" ${activo?'':'disabled'} onchange="setBloquesAño('${a}',this.value)" />
-        </td>
+        <td style="text-align:center;padding:8px"><button class="btn-sm ${activo?'chip selected':'chip'}" onclick="toggleAño('${a}')">${activo?'Sí':'No'}</button></td>
+        <td style="text-align:center;padding:8px"><input type="number" id="bl-${a}" min="1" max="15" value="${bl||''}" placeholder="0" style="width:60px;text-align:center" ${activo?'':'disabled'} onchange="setBloquesAño('${a}',this.value)" /></td>
       </tr>`;
     }).join('');
     cont.innerHTML = `
       <p class="panel-title">Carga horaria por año</p>
-      <p class="panel-sub">Activá los años en que se dicta esta materia e ingresá los bloques semanales.</p>
+      <p class="panel-sub">Activá los años en que se dicta e ingresá los bloques semanales.</p>
       <table style="width:100%;border-collapse:collapse">
         <thead><tr>
           <th style="text-align:left;padding:6px 12px;font-size:12px;color:var(--color-text-muted);border-bottom:0.5px solid var(--color-border)">Año</th>
           <th style="text-align:center;padding:6px;font-size:12px;color:var(--color-text-muted);border-bottom:0.5px solid var(--color-border)">¿Se dicta?</th>
           <th style="text-align:center;padding:6px;font-size:12px;color:var(--color-text-muted);border-bottom:0.5px solid var(--color-border)">Bloques / semana</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
+        </tr></thead><tbody>${rows}</tbody>
       </table>
       <div class="btn-row">
         <button class="btn-back" onclick="renderPanelMat(1)"><i class="ti ti-arrow-left"></i> Atrás</button>
-        <button onclick="renderPanelMat(3)">Siguiente <i class="ti ti-arrow-right"></i></button>
+        <button class="primary" onclick="renderPanelMat(3)">Siguiente <i class="ti ti-arrow-right"></i></button>
       </div>`;
   }
-
   if (step === 3) {
-    const nom = matState.nombre || '—';
-    const area = matState.area || 'Sin área';
-    const carga = AÑOS.filter(a => matState.carga[a].activo)
-      .map(a => `${a}° año: ${matState.carga[a].bloques} bloques`).join(' / ') || '—';
+    const carga = AÑOS.filter(a => matState.carga[a].activo).map(a => `${a}° año: ${matState.carga[a].bloques} bloques`).join(' / ') || '—';
     cont.innerHTML = `
       <p class="panel-title">Confirmación</p>
       <p class="panel-sub">Revisá los datos antes de guardar.</p>
       <div class="summary-card">
-        <div class="summary-row"><span class="summary-label">Materia</span><span class="summary-value">${nom}</span></div>
-        <div class="summary-row"><span class="summary-label">Área</span><span class="summary-value">${area}</span></div>
+        <div class="summary-row"><span class="summary-label">Materia</span><span class="summary-value">${matState.nombre||'—'}</span></div>
+        <div class="summary-row"><span class="summary-label">Área</span><span class="summary-value">${matState.area||'Sin área'}</span></div>
         <div class="summary-row"><span class="summary-label">Carga horaria</span><span class="summary-value" style="font-size:12px">${carga}</span></div>
       </div>
       <div class="btn-row">
         <button class="btn-back" onclick="renderPanelMat(2)"><i class="ti ti-arrow-left"></i> Atrás</button>
-        <button onclick="guardarMateria()"><i class="ti ti-check"></i> Guardar materia</button>
+        <button class="primary" onclick="guardarMateria()"><i class="ti ti-check"></i> Guardar materia</button>
       </div>`;
   }
-
   if (step === 4) {
-    cont.innerHTML = `
-      <div class="success-state">
-        <div class="success-icon"><i class="ti ti-check"></i></div>
-        <p class="success-title">Materia guardada</p>
-        <p class="success-sub">Los datos fueron guardados en Google Sheets correctamente.</p>
-        <button onclick="initWizardMat()"><i class="ti ti-plus"></i> Cargar otra materia</button>
-      </div>`;
+    cont.innerHTML = `<div class="success-state"><div class="success-icon"><i class="ti ti-check"></i></div><p class="success-title">Materia guardada</p><p class="success-sub">Los datos fueron guardados correctamente.</p><button onclick="initWizardMat()"><i class="ti ti-plus"></i> Cargar otra materia</button></div>`;
   }
 }
-
 function avanzarMat2() {
-  matState.nombre = document.getElementById('m-nombre')?.value || '';
+  matState.nombre = document.getElementById('m-nombre')?.value.trim() || '';
   matState.area   = document.getElementById('m-area')?.value || '';
+  if (!matState.nombre) { showToast('Ingresá el nombre de la materia', 'err'); return; }
   renderPanelMat(2);
 }
-
-function toggleAño(a) {
-  matState.carga[a].activo = !matState.carga[a].activo;
-  renderPanelMat(2);
-}
-
-function setBloquesAño(a, val) {
-  matState.carga[a].bloques = parseInt(val) || 0;
-}
-
+function toggleAño(a) { matState.carga[a].activo = !matState.carga[a].activo; renderPanelMat(2); }
+function setBloquesAño(a, val) { matState.carga[a].bloques = parseInt(val) || 0; }
 async function guardarMateria() {
-  const nombre = matState.nombre?.trim();
-  const area   = matState.area;
-  if (!nombre) { showToast('Ingresá el nombre de la materia', 'err'); return; }
   try {
-    const mat = await apiPost('crear','materias',{ nombre, area, activa: true });
+    const mat = await apiPost('crear','materias',{ nombre: matState.nombre, area: matState.area, activa: true, compartida: false });
     for (const a of AÑOS) {
-      if (matState.carga[a].activo && matState.carga[a].bloques > 0) {
-        await apiPost('crear','carga_horaria',{
-          id_materia: mat.id,
-          año: a,
-          bloques_semanales: matState.carga[a].bloques,
-          duracion_override_min: '',
-        });
-      }
+      if (matState.carga[a].activo && matState.carga[a].bloques > 0)
+        await apiPost('crear','carga_horaria',{ id_materia: mat.id, año: a, bloques_semanales: matState.carga[a].bloques, duracion_override_min:'' });
     }
-    delete _cache['MATERIAS'];
-    delete _cache['CARGA_HORARIA'];
-    renderPanelMat(4);
-    showToast('Materia guardada correctamente');
-  } catch(e) {
-    showToast('Error al guardar: ' + e.message, 'err');
-  }
+    delete _cache['MATERIAS']; delete _cache['CARGA_HORARIA'];
+    renderPanelMat(4); showToast('Materia guardada correctamente');
+  } catch(e) { showToast('Error: ' + e.message, 'err'); }
 }
 
 // ============================================================
@@ -784,44 +1055,28 @@ async function renderCursos() {
   try {
     const cursos = await apiGet('leer','CURSOS');
     const porAño = {};
-    cursos.forEach(c => {
-      if (!porAño[c.año]) porAño[c.año] = [];
-      porAño[c.año].push(c);
-    });
-    let html = '';
-    ['1','2','3','4','5','6'].forEach(a => {
+    cursos.forEach(c => { if (!porAño[c.año]) porAño[c.año] = []; porAño[c.año].push(c); });
+    cont.innerHTML = ['1','2','3','4','5','6'].map(a => {
       const lista = porAño[a] || [];
-      html += `<div style="margin-bottom:1.5rem">
+      return `<div style="margin-bottom:1.5rem">
         <div style="font-size:12px;font-weight:500;color:var(--color-text-muted);padding-bottom:6px;border-bottom:0.5px solid var(--color-border);margin-bottom:8px">${a}° año</div>
-        <div style="display:flex;gap:8px">`;
-      lista.forEach(c => {
-        const activo = c.activo === true || c.activo === 'true' || c.activo === 'TRUE';
-        html += `<div class="card" style="flex:1;opacity:${activo?1:0.5}">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <span style="font-size:15px;font-weight:500">${c.año}° ${c.division}</span>
-            <button onclick="toggleCurso('${c.id}','${!activo}')" style="padding:3px 8px;font-size:11px;border-radius:20px">
-              <i class="ti ti-${activo?'eye-off':'eye'}"></i>
-            </button>
-          </div>
-          <span class="badge ${activo?'badge-admin':'badge-viewer'}">${activo?'Activo':'Inactivo'}</span>
-        </div>`;
-      });
-      html += '</div></div>';
-    });
-    cont.innerHTML = html;
-  } catch(e) {
-    cont.innerHTML = `<p style="color:var(--color-red-text)">Error: ${e.message}</p>`;
-  }
+        <div style="display:flex;gap:8px">${lista.map(c => {
+          const activo = isTruthy(c.activo);
+          return `<div class="card" style="flex:1;opacity:${activo?1:0.5}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:15px;font-weight:500">${c.año}° ${c.division}</span>
+              <button onclick="toggleCurso('${c.id}',${!activo})" style="padding:3px 8px;font-size:11px;border-radius:20px"><i class="ti ti-${activo?'eye-off':'eye'}"></i></button>
+            </div>
+            <span class="badge ${activo?'badge-admin':'badge-viewer'}">${activo?'Activo':'Inactivo'}</span>
+          </div>`;
+        }).join('')}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { cont.innerHTML = `<p style="color:var(--color-red-text)">Error: ${e.message}</p>`; }
 }
-
 async function toggleCurso(id, nuevoActivo) {
-  try {
-    await apiPost('editar','cursos',{ activo: nuevoActivo === 'true' }, id);
-    delete _cache['CURSOS'];
-    renderCursos();
-  } catch(e) {
-    showToast('Error: ' + e.message, 'err');
-  }
+  try { await apiPost('editar','cursos',{ activo: nuevoActivo }, id); delete _cache['CURSOS']; renderCursos(); }
+  catch(e) { showToast('Error: ' + e.message, 'err'); }
 }
 
 // ============================================================
@@ -833,127 +1088,74 @@ async function renderReglas() {
   try {
     const reglas = await apiGet('leer','REGLAS');
     if (!reglas.length) { cont.innerHTML = '<p style="color:var(--color-text-muted)">No hay reglas cargadas.</p>'; return; }
-    const colores = { fija: 'badge-editor', pred: 'badge-admin', libre: 'badge-viewer' };
-    const catLabel = { sistema:'Sistema', materia:'Materia', profesor:'Profesor', año:'Año', curso:'Curso' };
+    const col = { fija:'badge-editor', pred:'badge-admin', libre:'badge-viewer' };
+    const cat = { sistema:'Sistema', materia:'Materia', profesor:'Profesor', año:'Año', curso:'Curso' };
     cont.innerHTML = reglas.map(r => {
-      const activo = r.activa === true || r.activa === 'true' || r.activa === 'TRUE';
+      const activo = isTruthy(r.activa);
       return `<div class="card" style="margin-bottom:8px;opacity:${activo?1:0.5};display:flex;align-items:flex-start;gap:12px">
         <div style="flex:1">
           <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap">
             <span style="font-size:14px;font-weight:500">${r.label}</span>
-            <span class="badge ${colores[r.tipo]||'badge-viewer'}">${r.tipo}</span>
-            <span class="badge badge-viewer">${catLabel[r.categoria]||r.categoria}</span>
+            <span class="badge ${col[r.tipo]||'badge-viewer'}">${r.tipo}</span>
+            <span class="badge badge-viewer">${cat[r.categoria]||r.categoria}</span>
             ${!activo?'<span class="badge badge-viewer">Inactiva</span>':''}
           </div>
           <p style="font-size:13px;color:var(--color-text-muted)">${r.descripcion}</p>
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0">
-          <button onclick="toggleRegla('${r.id}','${!activo}')" style="padding:4px 8px;font-size:12px"><i class="ti ti-${activo?'eye-off':'eye'}"></i></button>
+          <button onclick="toggleRegla('${r.id}',${!activo})" style="padding:4px 8px;font-size:12px"><i class="ti ti-${activo?'eye-off':'eye'}"></i></button>
           <button onclick="eliminarRegla('${r.id}')" style="padding:4px 8px;font-size:12px;color:var(--color-red-text)"><i class="ti ti-trash"></i></button>
         </div>
       </div>`;
     }).join('');
-  } catch(e) {
-    cont.innerHTML = `<p style="color:var(--color-red-text)">Error: ${e.message}</p>`;
-  }
+  } catch(e) { cont.innerHTML = `<p style="color:var(--color-red-text)">Error: ${e.message}</p>`; }
 }
-
 async function toggleRegla(id, nuevoActivo) {
-  try {
-    await apiPost('editar','reglas',{ activa: nuevoActivo === 'true' }, id);
-    delete _cache['REGLAS'];
-    renderReglas();
-  } catch(e) { showToast('Error: ' + e.message, 'err'); }
+  try { await apiPost('editar','reglas',{ activa: nuevoActivo }, id); delete _cache['REGLAS']; renderReglas(); }
+  catch(e) { showToast('Error: ' + e.message, 'err'); }
 }
-
 async function eliminarRegla(id) {
   if (!confirm('¿Eliminás esta regla?')) return;
-  try {
-    await apiPost('eliminar','reglas',{}, id);
-    delete _cache['REGLAS'];
-    renderReglas();
-    showToast('Regla eliminada');
-  } catch(e) { showToast('Error: ' + e.message, 'err'); }
+  try { await apiPost('eliminar','reglas',{}, id); delete _cache['REGLAS']; renderReglas(); showToast('Regla eliminada'); }
+  catch(e) { showToast('Error: ' + e.message, 'err'); }
 }
-
-function abrirModalRegla() {
-  showToast('Formulario de reglas — próximamente');
-}
+function abrirModalRegla() { showToast('Formulario de reglas — próximamente'); }
 
 // ============================================================
 // HORARIO
 // ============================================================
-const BLOQUES_H = [
-  {label:'1°',hora:'8:15–8:55'},{label:'2°',hora:'8:55–9:35'},
-  {label:'3°',hora:'9:55–10:35'},{label:'4°',hora:'10:35–11:15'},
-  {label:'5°',hora:'12:30–13:05'},{label:'6°',hora:'13:05–13:40'},
-  {label:'7°',hora:'13:50–14:25'},{label:'8°',hora:'14:25–15:10'},
-  {label:'9°',hora:'15:20–15:55'},{label:'10°',hora:'15:55–16:30'},
-];
-
-function buildHorario() {
-  const tbody = document.getElementById('horario-body');
-  tbody.innerHTML = BLOQUES_H.map(b =>
-    `<tr><td class="bloque-header"><span style="font-weight:500;color:var(--color-text-muted)">${b.label}</span><span style="font-size:10px;color:var(--color-text-faint);display:block">${b.hora}</span></td>
-    ${['Lunes','Martes','Miércoles','Jueves','Viernes'].map(() => `<td><span style="color:var(--color-text-faint);font-size:11px">—</span></td>`).join('')}</tr>`
+async function buildHorario() {
+  const bl = await getBloques();
+  document.getElementById('horario-body').innerHTML = bl.map(b =>
+    `<tr><td class="bloque-header"><span style="font-weight:500;color:var(--color-text-muted)">${b.label}</span><span style="font-size:10px;color:var(--color-text-faint);display:block">${b.hora}</span></td>${['Lunes','Martes','Miércoles','Jueves','Viernes'].map(()=>`<td><span style="color:var(--color-text-faint);font-size:11px">—</span></td>`).join('')}</tr>`
   ).join('');
 }
-
 function onVistaCambio() {
   const tipo = document.getElementById('vista-tipo').value;
-  document.getElementById('filtro-curso').style.display = tipo === 'curso' ? 'flex' : 'none';
-  document.getElementById('filtro-prof').style.display = tipo === 'profesor' ? 'flex' : 'none';
+  document.getElementById('filtro-curso').style.display = tipo==='curso'    ? 'flex' : 'none';
+  document.getElementById('filtro-prof').style.display  = tipo==='profesor' ? 'flex' : 'none';
 }
-
 function setModo(modo) {
-  document.getElementById('btn-consulta').classList.toggle('active', modo === 'consulta');
-  document.getElementById('btn-edicion').classList.toggle('active', modo === 'edicion');
-  showToast(modo === 'edicion' ? 'Modo edición activado' : 'Modo consulta activado');
+  document.getElementById('btn-consulta').classList.toggle('active', modo==='consulta');
+  document.getElementById('btn-edicion').classList.toggle('active',  modo==='edicion');
+  showToast(modo==='edicion' ? 'Modo edición activado' : 'Modo consulta activado');
 }
-
-function getTitulo() {
-  const tipo = document.getElementById('vista-tipo').value;
-  if (tipo === 'profesor') return 'Horario — ' + (document.getElementById('sel-prof')?.value || '');
-  const año = document.getElementById('sel-año')?.value || '';
-  const div = document.getElementById('sel-div')?.value?.replace('División ','') || '';
-  return `Horario — ${año} ${div}`;
-}
-
 function imprimirHorario() {
-  const titulo = getTitulo();
-  const tabla = document.querySelector('.h-table')?.outerHTML || '';
-  const win = window.open('', '_blank');
-  win.document.write(`<!DOCTYPE html><html><head><title>${titulo}</title>
-    <style>body{font-family:Arial,sans-serif;padding:20px}h2{font-size:16px;margin-bottom:4px}p{font-size:12px;color:#888;margin-bottom:16px}
-    table{border-collapse:collapse;width:100%;font-size:11px}th{padding:6px 8px;text-align:center;font-weight:500;border-bottom:1px solid #ddd;background:#f5f5f5}
-    td{padding:4px 6px;border:0.5px solid #ddd;vertical-align:top;min-height:36px}
-    @page{size:A4 landscape;margin:1.5cm}</style></head>
-    <body><h2>${titulo}</h2><p>HCA Horarios · Secundaria · ${new Date().toLocaleDateString('es-AR')}</p>${tabla}</body></html>`);
-  win.document.close();
-  setTimeout(() => { win.print(); }, 300);
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><style>body{font-family:Arial,sans-serif;padding:20px}table{border-collapse:collapse;width:100%;font-size:11px}th,td{padding:4px 6px;border:0.5px solid #ddd}@page{size:A4 landscape;margin:1.5cm}</style></head><body>${document.querySelector('.h-table')?.outerHTML||''}</body></html>`);
+  win.document.close(); setTimeout(()=>win.print(),300);
 }
-
-function toggleDropdown() {
-  document.getElementById('dropdown-menu').classList.toggle('hidden');
-}
-document.addEventListener('click', e => {
-  if (!e.target.closest('.dropdown-wrap')) document.getElementById('dropdown-menu')?.classList.add('hidden');
-});
-function descargar(fmt) {
-  document.getElementById('dropdown-menu').classList.add('hidden');
-  showToast(`Exportación a ${fmt.toUpperCase()} — próximamente`);
-}
+function toggleDropdown() { document.getElementById('dropdown-menu').classList.toggle('hidden'); }
+document.addEventListener('click', e => { if (!e.target.closest('.dropdown-wrap')) document.getElementById('dropdown-menu')?.classList.add('hidden'); });
+function descargar(fmt) { document.getElementById('dropdown-menu').classList.add('hidden'); showToast(`Exportación a ${fmt.toUpperCase()} — próximamente`); }
 
 // ============================================================
 // TOAST
 // ============================================================
 function showToast(msg, tipo) {
   const t = document.getElementById('toast');
-  const icon = tipo === 'err' ? 'ti-alert-circle' : 'ti-check';
-  const color = tipo === 'err' ? 'var(--color-red-text)' : '#1D9E75';
-  t.innerHTML = `<i class="ti ${icon}" style="font-size:14px;color:${color}"></i> ${msg}`;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+  t.innerHTML = `<i class="ti ${tipo==='err'?'ti-alert-circle':'ti-check'}" style="font-size:14px;color:${tipo==='err'?'var(--color-red-text)':'#1D9E75'}"></i> ${msg}`;
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000);
 }
 
 // ============================================================
