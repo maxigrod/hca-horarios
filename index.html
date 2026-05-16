@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test conexión HCA</title>
+</head>
+<body>
+  <h2>Test de conexión HCA Horarios</h2>
+  <button onclick="testLeer()">Probar conexión</button>
+  <pre id="resultado">Esperando...</pre>
+
+  <script>
+    const URL = 'https://script.google.com/a/macros/colegioandersen.org/s/AKfycbz2hoD1IfJeLZNWl3dRJmeb8sWqUYI2WS73ahzOh10esapy_qNbSEy_ZL2KmEoPvPPI2g/exec';
+
+    async function testLeer() {
+      document.getElementById('resultado').textContent = 'Consultando...';
+      try {
+        const res = await fetch(`${URL}?accion=config`);
+        const json = await res.json();
+        document.getElementById('resultado').textContent = JSON.stringify(json, null, 2);
+      } catch (err) {
+        document.getElementById('resultado').textContent = 'ERROR: ' + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
