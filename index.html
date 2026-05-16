@@ -487,7 +487,7 @@ async function renderPanelProf(step) {
         <div class="field"><label>Nombre</label><input id="p-nombre" placeholder="Laura" /></div>
       </div>
       <div class="field"><label>Email institucional</label><input id="p-email" type="email" placeholder="lgarcia@colegioandersen.org" /></div>
-      <div class="btn-row"><span></span><button onclick="renderPanelProf(2)">Siguiente <i class="ti ti-arrow-right"></i></button></div>`;
+      <div class="btn-row"><span></span><button onclick="avanzarProf2()">Siguiente <i class="ti ti-arrow-right"></i></button></div>`;
   }
 
   if (step === 2) {
@@ -534,9 +534,9 @@ async function renderPanelProf(step) {
   }
 
   if (step === 4) {
-    const ap = document.getElementById('p-apellido')?.value || '—';
-    const nom = document.getElementById('p-nombre')?.value || '—';
-    const em = document.getElementById('p-email')?.value || '—';
+    const ap = profState.apellido || '—';
+    const nom = profState.nombre || '—';
+    const em = profState.email || '—';
     const mats = profState.materias.join(', ') || '—';
     const disp = DIAS.map(d => {
       const bs = BLOQUES.filter(b => profState.disponibilidad[d][b.num]).map(b => b.label);
@@ -568,6 +568,13 @@ async function renderPanelProf(step) {
   }
 }
 
+function avanzarProf2() {
+  profState.apellido = document.getElementById('p-apellido')?.value || '';
+  profState.nombre   = document.getElementById('p-nombre')?.value || '';
+  profState.email    = document.getElementById('p-email')?.value || '';
+  renderPanelProf(2);
+}
+
 function toggleMateria(el, nombre) {
   if (profState.materias.includes(nombre)) {
     profState.materias = profState.materias.filter(m => m !== nombre);
@@ -593,9 +600,9 @@ function setAllDisp(val) {
 }
 
 async function guardarProfesor() {
-  const apellido = document.getElementById('p-apellido')?.value?.trim();
-  const nombre   = document.getElementById('p-nombre')?.value?.trim();
-  const email    = document.getElementById('p-email')?.value?.trim();
+  const apellido = profState.apellido?.trim();
+  const nombre   = profState.nombre?.trim();
+  const email    = profState.email?.trim();
   if (!apellido || !nombre) { showToast('Completá nombre y apellido', 'err'); return; }
   try {
     await apiPost('crear','profesores',{
@@ -664,7 +671,7 @@ function renderPanelMat(step) {
         </select>
         <span style="font-size:11px;color:var(--color-text-faint)">Solo para registro interno.</span>
       </div>
-      <div class="btn-row"><span></span><button onclick="renderPanelMat(2)">Siguiente <i class="ti ti-arrow-right"></i></button></div>`;
+      <div class="btn-row"><span></span><button onclick="avanzarMat2()">Siguiente <i class="ti ti-arrow-right"></i></button></div>`;
   }
 
   if (step === 2) {
@@ -699,8 +706,8 @@ function renderPanelMat(step) {
   }
 
   if (step === 3) {
-    const nom = document.getElementById('m-nombre')?.value || '—';
-    const area = document.getElementById('m-area')?.value || 'Sin área';
+    const nom = matState.nombre || '—';
+    const area = matState.area || 'Sin área';
     const carga = AÑOS.filter(a => matState.carga[a].activo)
       .map(a => `${a}° año: ${matState.carga[a].bloques} bloques`).join(' / ') || '—';
     cont.innerHTML = `
@@ -728,6 +735,12 @@ function renderPanelMat(step) {
   }
 }
 
+function avanzarMat2() {
+  matState.nombre = document.getElementById('m-nombre')?.value || '';
+  matState.area   = document.getElementById('m-area')?.value || '';
+  renderPanelMat(2);
+}
+
 function toggleAño(a) {
   matState.carga[a].activo = !matState.carga[a].activo;
   renderPanelMat(2);
@@ -738,8 +751,8 @@ function setBloquesAño(a, val) {
 }
 
 async function guardarMateria() {
-  const nombre = document.getElementById('m-nombre')?.value?.trim();
-  const area   = document.getElementById('m-area')?.value;
+  const nombre = matState.nombre?.trim();
+  const area   = matState.area;
   if (!nombre) { showToast('Ingresá el nombre de la materia', 'err'); return; }
   try {
     const mat = await apiPost('crear','materias',{ nombre, area, activa: true });
