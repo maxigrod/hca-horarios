@@ -479,7 +479,7 @@ function confirmar(titulo, sub, cb) {
   document.getElementById('modal-confirm').classList.remove('hidden');
 }
 function cerrarModal() { document.getElementById('modal-confirm').classList.add('hidden'); _modalCb = null; }
-document.getElementById('modal-ok-btn').onclick = async () => { cerrarModal(); if (_modalCb) await _modalCb(); };
+document.getElementById('modal-ok-btn').onclick = async () => { const cb = _modalCb; cerrarModal(); if (cb) await cb(); };
 
 // ============================================================
 // PROFESORES — BLOQUES (desde API, con fallback)
