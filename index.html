@@ -332,12 +332,18 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
 
     <!-- MATERIAS -->
     <div class="section" id="section-materias">
-      <p class="page-title">Materias</p>
-      <p class="page-sub">Carga y gestión de materias y carga horaria</p>
-      <div class="wizard">
-        <div class="steps" id="steps-mat"></div>
-        <div id="panels-mat"></div>
+      <div id="mat-listado"></div>
+      <div id="mat-wizard" style="display:none">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem">
+          <button class="btn-back" onclick="volverListadoMat()"><i class="ti ti-arrow-left"></i> Volver</button>
+          <span style="font-size:13px;color:var(--color-text-muted)">Nueva materia</span>
+        </div>
+        <div class="wizard">
+          <div class="steps" id="steps-mat"></div>
+          <div id="panels-mat"></div>
+        </div>
       </div>
+      <div id="mat-ficha" style="display:none"></div>
     </div>
 
     <!-- CURSOS -->
@@ -433,7 +439,7 @@ function goTo(section) {
   if (section === 'cursos')     renderCursos();
   if (section === 'reglas')     renderReglas();
   if (section === 'profesores') renderListadoProf();
-  if (section === 'materias')   initWizardMat();
+  if (section === 'materias')   renderListadoMat();
 }
 
 // ============================================================
@@ -954,6 +960,125 @@ function confirmarBajaProf() {
 // ============================================================
 const AÑOS = ['1','2','3','4','5','6'];
 let matState = {};
+
+// ---------- modos ----------
+function mostrarModoMat(modo) {
+  document.getElementById('mat-listado').style.display = modo === 'listado' ? 'block' : 'none';
+  document.getElementById('mat-wizard').style.display  = modo === 'wizard'  ? 'block' : 'none';
+  document.getElementById('mat-ficha').style.display   = modo === 'ficha'   ? 'block' : 'none';
+}
+function volverListadoMat() { delete _cache['MATERIAS']; delete _cache['CARGA_HORARIA']; renderListadoMat(); }
+function mostrarWizardMat() { mostrarModoMat('wizard'); initWizardMat(); }
+
+// ---------- listado ----------
+let _matFiltros = { area:'', estado:'activas', tipo:'' };
+
+async function renderListadoMat() {
+  mostrarModoMat('listado');
+  const cont = document.getElementById('mat-listado');
+  cont.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div><p class="page-title">Materias</p><p class="page-sub" style="margin-bottom:0">Catálogo de materias</p></div>
+      <button class="primary" onclick="mostrarWizardMat()"><i class="ti ti-plus"></i> Nueva materia</button>
+    </div>
+    <div class="card" style="margin-bottom:1rem;padding:12px 16px">
+      <div class="list-toolbar">
+        <div class="field"><label>Área</label>
+          <select id="mf-area" onchange="aplicarFiltrosMat()">
+            <option value="">Todas las áreas</option>
+            <option>Ciencias Exactas</option><option>Ciencias Naturales</option><option>Ciencias Sociales</option>
+            <option>Lengua y Literatura</option><option>Lenguas Extranjeras</option><option>Educación Física</option>
+            <option>Arte</option><option>Formación Ética</option><option>Tecnología</option>
+          </select>
+        </div>
+        <div class="field"><label>Estado</label>
+          <select id="mf-estado" onchange="aplicarFiltrosMat()">
+            <option value="activas">Activas</option>
+            <option value="inactivas">Inactivas</option>
+            <option value="todas">Todas</option>
+          </select>
+        </div>
+        <div class="field"><label>Tipo</label>
+          <select id="mf-tipo" onchange="aplicarFiltrosMat()">
+            <option value="">Todas</option>
+            <option value="no_compartida">No compartida</option>
+            <option value="compartida">Compartida</option>
+          </select>
+        </div>
+        <button onclick="limpiarFiltrosMat()" class="btn-sm" style="align-self:flex-end"><i class="ti ti-x"></i> Limpiar</button>
+      </div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div id="mat-tabla-wrap"><div class="loading" style="padding:1.5rem"><div class="spinner"></div> Cargando...</div></div>
+    </div>`;
+  await cargarTablaMat();
+}
+
+async function cargarTablaMat() {
+  try {
+    const [mats, cargas] = await Promise.all([apiGet('leer','MATERIAS'), apiGet('leer','CARGA_HORARIA')]);
+    // Restaurar filtros
+    const fa = document.getElementById('mf-area');   if (fa) fa.value = _matFiltros.area;
+    const fe = document.getElementById('mf-estado'); if (fe) fe.value = _matFiltros.estado;
+    const ft = document.getElementById('mf-tipo');   if (ft) ft.value = _matFiltros.tipo;
+    renderTablaMat(mats, cargas);
+  } catch(e) {
+    const w = document.getElementById('mat-tabla-wrap');
+    if (w) w.innerHTML = `<p style="padding:1.5rem;color:var(--color-red-text)">Error: ${e.message}</p>`;
+  }
+}
+
+function aplicarFiltrosMat() {
+  _matFiltros.area   = document.getElementById('mf-area')?.value   || '';
+  _matFiltros.estado = document.getElementById('mf-estado')?.value || 'activas';
+  _matFiltros.tipo   = document.getElementById('mf-tipo')?.value   || '';
+  renderTablaMat(_cache['MATERIAS'] || [], _cache['CARGA_HORARIA'] || []);
+}
+
+function limpiarFiltrosMat() {
+  _matFiltros = { area:'', estado:'activas', tipo:'' };
+  ['mf-area','mf-estado','mf-tipo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = id === 'mf-estado' ? 'activas' : ''; });
+  renderTablaMat(_cache['MATERIAS'] || [], _cache['CARGA_HORARIA'] || []);
+}
+
+function renderTablaMat(mats, cargas) {
+  let lista = [...mats];
+  if (_matFiltros.estado === 'activas')   lista = lista.filter(m => isTruthy(m.activa));
+  if (_matFiltros.estado === 'inactivas') lista = lista.filter(m => !isTruthy(m.activa));
+  if (_matFiltros.area)  lista = lista.filter(m => m.area === _matFiltros.area);
+  if (_matFiltros.tipo === 'compartida')    lista = lista.filter(m => isTruthy(m.compartida));
+  if (_matFiltros.tipo === 'no_compartida') lista = lista.filter(m => !isTruthy(m.compartida));
+  lista.sort((a,b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+
+  const wrap = document.getElementById('mat-tabla-wrap');
+  if (!wrap) return;
+
+  if (!lista.length) {
+    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-book"></i>No hay materias que coincidan con los filtros.</div>`;
+    return;
+  }
+
+  const rows = lista.map(m => {
+    const activa = isTruthy(m.activa);
+    const comp   = isTruthy(m.compartida);
+    // años en que se dicta
+    const años = cargas.filter(c => String(c.id_materia) === String(m.id)).map(c => c.año + '°').join(', ') || '—';
+    return `<tr class="${activa?'':'inactivo'}" onclick="abrirFichaMat(${m.id})" style="cursor:pointer;transition:background 0.1s" onmouseover="this.style.background='var(--color-bg)'" onmouseout="this.style.background=''">
+      <td><div style="font-weight:500">${m.nombre}</div></td>
+      <td style="color:var(--color-text-muted);font-size:12px">${m.area||'—'}</td>
+      <td style="font-size:12px">${años}</td>
+      <td>${comp ? '<span class="badge badge-editor">Compartida</span>' : '<span class="badge badge-viewer">No compartida</span>'}</td>
+      <td><span class="badge ${activa?'badge-admin':'badge-inactivo'}">${activa?'Activa':'Inactiva'}</span></td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<table class="prof-table">
+    <thead><tr><th>Materia</th><th>Área</th><th>Años</th><th>Tipo</th><th>Estado</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// ---------- wizard alta ----------
 function resetMatState() { matState = { step:1, carga:{} }; AÑOS.forEach(a => matState.carga[a] = { activo:false, bloques:0 }); }
 async function initWizardMat() { resetMatState(); renderStepsMat(); renderPanelMat(1); }
 
@@ -982,14 +1107,15 @@ function renderPanelMat(step) {
         </select>
       </div>
       <div class="btn-row"><span></span><button class="primary" onclick="avanzarMat2()">Siguiente <i class="ti ti-arrow-right"></i></button></div>`;
+    if (matState.area) document.getElementById('m-area').value = matState.area;
   }
   if (step === 2) {
     const rows = AÑOS.map(a => {
       const activo = matState.carga[a].activo, bl = matState.carga[a].bloques;
       return `<tr>
         <td style="font-size:13px;font-weight:500;padding:8px 12px">${a}° año</td>
-        <td style="text-align:center;padding:8px"><button class="btn-sm ${activo?'chip selected':'chip'}" onclick="toggleAño('${a}')">${activo?'Sí':'No'}</button></td>
-        <td style="text-align:center;padding:8px"><input type="number" id="bl-${a}" min="1" max="15" value="${bl||''}" placeholder="0" style="width:60px;text-align:center" ${activo?'':'disabled'} onchange="setBloquesAño('${a}',this.value)" /></td>
+        <td style="text-align:center;padding:8px"><button class="btn-sm ${activo?'chip selected':'chip'}" onclick="toggleAñoWiz('${a}')">${activo?'Sí':'No'}</button></td>
+        <td style="text-align:center;padding:8px"><input type="number" id="bl-${a}" min="1" max="15" value="${bl||''}" placeholder="0" style="width:60px;text-align:center" ${activo?'':'disabled'} onchange="setBloquesAñoWiz('${a}',this.value)" /></td>
       </tr>`;
     }).join('');
     cont.innerHTML = `
@@ -1019,22 +1145,24 @@ function renderPanelMat(step) {
       </div>
       <div class="btn-row">
         <button class="btn-back" onclick="renderPanelMat(2)"><i class="ti ti-arrow-left"></i> Atrás</button>
-        <button class="primary" onclick="guardarMateria()"><i class="ti ti-check"></i> Guardar materia</button>
+        <button class="primary" onclick="guardarMateriaNueva()"><i class="ti ti-check"></i> Guardar materia</button>
       </div>`;
   }
   if (step === 4) {
-    cont.innerHTML = `<div class="success-state"><div class="success-icon"><i class="ti ti-check"></i></div><p class="success-title">Materia guardada</p><p class="success-sub">Los datos fueron guardados correctamente.</p><button onclick="initWizardMat()"><i class="ti ti-plus"></i> Cargar otra materia</button></div>`;
+    cont.innerHTML = `<div class="success-state"><div class="success-icon"><i class="ti ti-check"></i></div><p class="success-title">Materia guardada</p><p class="success-sub">Los datos fueron guardados correctamente.</p><div style="display:flex;gap:8px;justify-content:center"><button onclick="initWizardMat()"><i class="ti ti-plus"></i> Cargar otra</button><button class="primary" onclick="volverListadoMat()"><i class="ti ti-list"></i> Ver listado</button></div></div>`;
   }
 }
+
 function avanzarMat2() {
   matState.nombre = document.getElementById('m-nombre')?.value.trim() || '';
   matState.area   = document.getElementById('m-area')?.value || '';
   if (!matState.nombre) { showToast('Ingresá el nombre de la materia', 'err'); return; }
   renderPanelMat(2);
 }
-function toggleAño(a) { matState.carga[a].activo = !matState.carga[a].activo; renderPanelMat(2); }
-function setBloquesAño(a, val) { matState.carga[a].bloques = parseInt(val) || 0; }
-async function guardarMateria() {
+function toggleAñoWiz(a) { matState.carga[a].activo = !matState.carga[a].activo; renderPanelMat(2); }
+function setBloquesAñoWiz(a, val) { matState.carga[a].bloques = parseInt(val) || 0; }
+
+async function guardarMateriaNueva() {
   try {
     const mat = await apiPost('crear','materias',{ nombre: matState.nombre, area: matState.area, activa: true, compartida: false });
     for (const a of AÑOS) {
@@ -1046,6 +1174,159 @@ async function guardarMateria() {
   } catch(e) { showToast('Error: ' + e.message, 'err'); }
 }
 
+// ---------- ficha editable ----------
+let fichaMatState = {};
+
+async function abrirFichaMat(id) {
+  mostrarModoMat('ficha');
+  const cont = document.getElementById('mat-ficha');
+  cont.innerHTML = '<div class="loading" style="padding:2rem"><div class="spinner"></div> Cargando ficha...</div>';
+  try {
+    const [mats, cargas] = await Promise.all([apiGet('leer','MATERIAS'), apiGet('leer','CARGA_HORARIA')]);
+    const mat = mats.find(m => String(m.id) === String(id));
+    if (!mat) throw new Error('Materia no encontrada');
+
+    const cargaMat = cargas.filter(c => String(c.id_materia) === String(mat.id));
+    const activa   = isTruthy(mat.activa);
+
+    // Estado editable: mapa año → { id_carga, bloques, activo }
+    const cargaEdit = {};
+    AÑOS.forEach(a => cargaEdit[a] = { id_carga: null, bloques: 0, activo: false });
+    cargaMat.forEach(c => {
+      const a = String(c.año);
+      if (cargaEdit[a] !== undefined) {
+        cargaEdit[a] = { id_carga: c.id, bloques: Number(c.bloques_semanales) || 0, activo: true };
+      }
+    });
+
+    fichaMatState = { id: mat.id, nombre: mat.nombre||'', area: mat.area||'', activa, cargaEdit };
+
+    cont.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem">
+        <button class="btn-back" onclick="volverListadoMat()"><i class="ti ti-arrow-left"></i> Volver</button>
+        <span style="font-size:13px;color:var(--color-text-muted)">Ficha de materia</span>
+      </div>
+      <div class="ficha">
+        <div class="ficha-header">
+          <div class="ficha-avatar" style="border-radius:var(--radius);width:44px;height:44px;font-size:13px"><i class="ti ti-book" style="font-size:20px"></i></div>
+          <div><div class="ficha-nombre">${mat.nombre}</div><div class="ficha-email">${mat.area||'Sin área'}</div></div>
+          <span class="badge ${activa?'badge-admin':'badge-inactivo'}" style="margin-left:auto">${activa?'Activa':'Inactiva'}</span>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Datos básicos</div>
+          <div class="field"><label>Nombre de la materia</label><input id="fi-mat-nombre" value="${fichaMatState.nombre}" /></div>
+          <div class="field"><label>Área curricular</label>
+            <select id="fi-mat-area">
+              <option value="">Sin área asignada</option>
+              <option>Ciencias Exactas</option><option>Ciencias Naturales</option><option>Ciencias Sociales</option>
+              <option>Lengua y Literatura</option><option>Lenguas Extranjeras</option><option>Educación Física</option>
+              <option>Arte</option><option>Formación Ética</option><option>Tecnología</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Carga horaria por año</div>
+          <table style="width:100%;border-collapse:collapse" id="tabla-carga-ficha">
+            <thead><tr>
+              <th style="text-align:left;padding:6px 12px;font-size:12px;color:var(--color-text-muted);border-bottom:0.5px solid var(--color-border)">Año</th>
+              <th style="text-align:center;padding:6px;font-size:12px;color:var(--color-text-muted);border-bottom:0.5px solid var(--color-border)">¿Se dicta?</th>
+              <th style="text-align:center;padding:6px;font-size:12px;color:var(--color-text-muted);border-bottom:0.5px solid var(--color-border)">Bloques / semana</th>
+            </tr></thead>
+            <tbody id="carga-ficha-body"></tbody>
+          </table>
+        </div>
+
+        <div class="ficha-actions">
+          <button class="danger" onclick="confirmarBajaMat()">${activa?'<i class="ti ti-eye-off"></i> Dar de baja':'<i class="ti ti-eye"></i> Reactivar'}</button>
+          <button class="primary" onclick="guardarFichaMat()"><i class="ti ti-check"></i> Guardar cambios</button>
+        </div>
+      </div>`;
+
+    // Setear área en el select
+    document.getElementById('fi-mat-area').value = fichaMatState.area;
+
+    // Renderizar tabla de carga
+    renderCargaFichaBody();
+
+  } catch(e) { cont.innerHTML = `<p style="color:var(--color-red-text);padding:1rem">Error: ${e.message}</p>`; }
+}
+
+function renderCargaFichaBody() {
+  const tbody = document.getElementById('carga-ficha-body');
+  if (!tbody) return;
+  tbody.innerHTML = AÑOS.map(a => {
+    const { activo, bloques } = fichaMatState.cargaEdit[a];
+    return `<tr>
+      <td style="font-size:13px;font-weight:500;padding:8px 12px">${a}° año</td>
+      <td style="text-align:center;padding:8px">
+        <button class="btn-sm ${activo?'chip selected':'chip'}" onclick="toggleAñoFichaMat('${a}')">${activo?'Sí':'No'}</button>
+      </td>
+      <td style="text-align:center;padding:8px">
+        <input type="number" id="fc-bl-${a}" min="1" max="15" value="${bloques||''}" placeholder="0"
+          style="width:60px;text-align:center" ${activo?'':'disabled'}
+          onchange="setBloquesAñoFichaMat('${a}',this.value)" />
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleAñoFichaMat(a) {
+  fichaMatState.cargaEdit[a].activo = !fichaMatState.cargaEdit[a].activo;
+  renderCargaFichaBody();
+}
+function setBloquesAñoFichaMat(a, val) { fichaMatState.cargaEdit[a].bloques = parseInt(val) || 0; }
+
+function guardarFichaMat() {
+  confirmar('¿Confirmamos los cambios?', `Se actualizarán los datos de ${document.getElementById('fi-mat-nombre')?.value || fichaMatState.nombre}.`, async () => {
+    try {
+      // 1. Actualizar datos básicos de la materia
+      await apiPost('editar','materias', {
+        nombre: document.getElementById('fi-mat-nombre')?.value.trim() || fichaMatState.nombre,
+        area:   document.getElementById('fi-mat-area')?.value          || '',
+      }, fichaMatState.id);
+
+      // 2. Sincronizar carga horaria año por año
+      const cargas = _cache['CARGA_HORARIA'] || await apiGet('leer','CARGA_HORARIA');
+      for (const a of AÑOS) {
+        const { id_carga, activo, bloques } = fichaMatState.cargaEdit[a];
+        // Leer valor actual del input por si el usuario escribió sin disparar onchange
+        const blInput = parseInt(document.getElementById(`fc-bl-${a}`)?.value) || bloques;
+
+        if (activo && blInput > 0) {
+          if (id_carga) {
+            // Ya existe → editar
+            await apiPost('editar','carga_horaria', { bloques_semanales: blInput }, id_carga);
+          } else {
+            // No existe → crear
+            await apiPost('crear','carga_horaria', { id_materia: fichaMatState.id, año: a, bloques_semanales: blInput, duracion_override_min:'' });
+          }
+        } else if (!activo && id_carga) {
+          // Existía y fue desactivado → eliminar
+          await apiPost('eliminar','carga_horaria', {}, id_carga);
+        }
+      }
+
+      delete _cache['MATERIAS']; delete _cache['CARGA_HORARIA'];
+      showToast('Cambios guardados');
+      volverListadoMat();
+    } catch(e) { showToast('Error: ' + e.message, 'err'); }
+  });
+}
+
+function confirmarBajaMat() {
+  const nuevo  = !fichaMatState.activa;
+  const accion = nuevo ? 'reactivar' : 'dar de baja';
+  confirmar('¿Confirmamos los cambios?', `Vas a ${accion} la materia ${fichaMatState.nombre}.`, async () => {
+    try {
+      await apiPost('editar','materias', { activa: nuevo }, fichaMatState.id);
+      delete _cache['MATERIAS'];
+      showToast(nuevo ? 'Materia reactivada' : 'Materia dada de baja');
+      volverListadoMat();
+    } catch(e) { showToast('Error: ' + e.message, 'err'); }
+  });
+}
 // ============================================================
 // CURSOS
 // ============================================================
