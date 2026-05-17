@@ -188,6 +188,28 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
 
 .cur-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-color: var(--color-blue-border); }
 
+/* REPORTE */
+.reporte-resumen { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:1.5rem; }
+.rep-card { background:var(--color-surface); border:0.5px solid var(--color-border); border-radius:var(--radius); padding:14px 16px; }
+.rep-card-label { font-size:12px; color:var(--color-text-faint); margin-bottom:6px; }
+.rep-card-value { font-size:22px; font-weight:500; }
+.rep-row { display:grid; grid-template-columns:1fr auto; align-items:start; gap:8px; padding:10px 16px; border-bottom:0.5px solid var(--color-border); cursor:pointer; transition:background 0.1s; }
+.rep-row:hover { background:var(--color-bg); }
+.rep-row:last-child { border-bottom:none; }
+.rep-nombre { font-size:13px; font-weight:500; }
+.rep-meta { font-size:12px; color:var(--color-text-muted); margin-top:2px; }
+.rep-badges { display:flex; gap:6px; align-items:center; flex-shrink:0; }
+.rep-bar-wrap { height:5px; background:var(--color-bg); border-radius:3px; margin-top:6px; overflow:hidden; border:0.5px solid var(--color-border); }
+.rep-bar { height:100%; border-radius:3px; transition:width 0.3s; }
+.rep-bar-ok   { background:#1D9E75; }
+.rep-bar-over { background:#E24B4A; }
+.rep-bar-low  { background:#BA7517; }
+.rep-detalle { display:none; padding:10px 16px 14px; background:var(--color-bg); border-bottom:0.5px solid var(--color-border); }
+.rep-detalle.open { display:block; }
+.rep-det-row { display:flex; justify-content:space-between; font-size:12px; padding:5px 0; border-bottom:0.5px solid var(--color-border); color:var(--color-text-muted); }
+.rep-det-row:last-child { border-bottom:none; }
+.rep-det-mat { font-weight:500; color:var(--color-text); }
+
 .toast { position: fixed; bottom: 20px; right: 20px; background: var(--color-surface); border: 0.5px solid var(--color-border-strong); border-radius: var(--radius); padding: 10px 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
 .toast.show { opacity: 1; }
 
@@ -242,6 +264,10 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
     <div class="nav-divider"></div>
     <button class="nav-item" id="nav-reglas" onclick="goTo('reglas')">
       <i class="ti ti-list-check"></i> Reglas
+    </button>
+    <div class="nav-divider"></div>
+    <button class="nav-item" id="nav-reporte" onclick="goTo('reporte')">
+      <i class="ti ti-chart-bar"></i> Reporte de horas
     </button>
     <div class="nav-divider"></div>
     <button class="nav-item" id="nav-generacion" onclick="goTo('generacion')">
@@ -373,6 +399,13 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
       <div id="reglas-container"><div class="loading"><div class="spinner"></div> Cargando reglas...</div></div>
     </div>
 
+    <!-- REPORTE DE HORAS -->
+    <div class="section" id="section-reporte">
+      <p class="page-title">Reporte de horas</p>
+      <p class="page-sub">Horas asignadas vs. contrato por docente</p>
+      <div id="reporte-container"><div class="loading"><div class="spinner"></div> Cargando...</div></div>
+    </div>
+
     <!-- GENERACION -->
     <div class="section" id="section-generacion">
       <p class="page-title">Generación</p>
@@ -449,7 +482,7 @@ function goTo(section) {
   if (section === 'cursos')     renderListadoCur();
   if (section === 'reglas')     renderReglas();
   if (section === 'profesores') renderListadoProf();
-  if (section === 'materias')   renderListadoMat();
+  if (section === 'reporte')    renderReporte();
 }
 
 // ============================================================
@@ -1867,6 +1900,184 @@ async function wizCurGuardar() {
       </div>`;
     document.getElementById('steps-cur').innerHTML = '';
   } catch(e) { showToast('Error: ' + e.message, 'err'); }
+}
+
+// ============================================================
+// REPORTE DE HORAS
+// ============================================================
+async function renderReporte() {
+  const cont = document.getElementById('reporte-container');
+  cont.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando reporte...</div>';
+  try {
+    const [profs, mats, cursos, asigs, cargas] = await Promise.all([
+      apiGet('leer','PROFESORES'),
+      apiGet('leer','MATERIAS'),
+      apiGet('leer','CURSOS'),
+      apiGet('leer','ASIGNACIONES'),
+      apiGet('leer','CARGA_HORARIA'),
+    ]);
+
+    const esViewer = USUARIO.rol === 'viewer';
+
+    // Construir datos por profesor
+    const activos = profs.filter(p => isTruthy(p.activo));
+    const datos = activos.map(p => {
+      const asigProf = asigs.filter(a =>
+        String(a.id_profesor) === String(p.id) &&
+        a.estado !== 'archivado' &&
+        (!esViewer || a.estado === 'publicado')
+      );
+
+      // Por cada asignación, buscar los bloques semanales en CARGA_HORARIA
+      // (materia X en el año del curso Y)
+      const detalle = asigProf.map(a => {
+        const mat    = mats.find(m => String(m.id) === String(a.id_materia));
+        const curso  = cursos.find(c => String(c.id) === String(a.id_curso));
+        const carga  = cargas.find(c =>
+          String(c.id_materia) === String(a.id_materia) &&
+          String(c.año) === String(curso?.año)
+        );
+        const bloques = Number(carga?.bloques_semanales) || 0;
+        return {
+          matNombre:  mat?.nombre || `Materia #${a.id_materia}`,
+          curLabel:   curso ? `${curso.año}° ${curso.division}` : `Curso #${a.id_curso}`,
+          bloques,
+          estado:     a.estado,
+        };
+      });
+
+      const bloquesAsig   = detalle.reduce((s, d) => s + d.bloques, 0);
+      const horasContrato = Number(p.horas_contrato) || 0;
+      const unidad        = p.unidad_contrato === 'modulos' ? 'mód' : 'hs';
+      const diff          = horasContrato ? bloquesAsig - horasContrato : null;
+
+      return { p, detalle, bloquesAsig, horasContrato, unidad, diff };
+    });
+
+    // Métricas de resumen
+    const conContrato    = datos.filter(d => d.horasContrato > 0);
+    const completos      = conContrato.filter(d => d.diff !== null && d.diff === 0).length;
+    const sobreasignados = conContrato.filter(d => d.diff !== null && d.diff > 0).length;
+    const subasignados   = conContrato.filter(d => d.diff !== null && d.diff < 0).length;
+    const sinContrato    = datos.filter(d => d.horasContrato === 0).length;
+
+    // Filtro de estado (solo admin/editor)
+    const filtroHtml = !esViewer ? `
+      <div class="card" style="padding:12px 16px;margin-bottom:1rem">
+        <div class="list-toolbar">
+          <div class="field" style="margin-bottom:0">
+            <label>Mostrar asignaciones</label>
+            <select id="rep-estado-fil" onchange="renderReporte()" style="width:auto">
+              <option value="todas">Borrador + Publicadas</option>
+              <option value="borrador">Solo borrador</option>
+              <option value="publicado">Solo publicadas</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Estado del docente</label>
+            <select id="rep-sit-fil" onchange="aplicarFiltroReporte()" style="width:auto">
+              <option value="todos">Todos</option>
+              <option value="ok">Completos</option>
+              <option value="sobre">Sobreasignados</option>
+              <option value="bajo">Subasignados</option>
+              <option value="sin">Sin contrato cargado</option>
+            </select>
+          </div>
+        </div>
+      </div>` : '';
+
+    cont.innerHTML = `
+      ${filtroHtml}
+      <div class="reporte-resumen">
+        <div class="rep-card"><div class="rep-card-label">Docentes activos</div><div class="rep-card-value">${datos.length}</div></div>
+        <div class="rep-card"><div class="rep-card-label" style="color:#1D9E75">Completos</div><div class="rep-card-value" style="color:#1D9E75">${completos}</div></div>
+        <div class="rep-card"><div class="rep-card-label" style="color:#E24B4A">Sobreasignados</div><div class="rep-card-value" style="color:#E24B4A">${sobreasignados}</div></div>
+        <div class="rep-card"><div class="rep-card-label" style="color:#BA7517">Subasignados</div><div class="rep-card-value" style="color:#BA7517">${subasignados}</div></div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div id="rep-lista">
+          ${datos.map((d, i) => _renderRepRow(d, i)).join('')}
+        </div>
+      </div>`;
+
+  } catch(e) {
+    cont.innerHTML = `<p style="color:var(--color-red-text);padding:1rem">Error: ${e.message}</p>`;
+  }
+}
+
+function _renderRepRow(d, i) {
+  const { p, detalle, bloquesAsig, horasContrato, unidad, diff } = d;
+  const ini = ((p.apellido||'')[0]||'').toUpperCase() + ((p.nombre||'')[0]||'').toUpperCase();
+
+  // Badge de situación
+  let badgeHtml = '';
+  let barClass  = 'rep-bar-low';
+  let barPct    = 0;
+  if (!horasContrato) {
+    badgeHtml = '<span class="badge badge-viewer">Sin contrato</span>';
+    barPct    = bloquesAsig > 0 ? 100 : 0;
+    barClass  = 'rep-bar-low';
+  } else if (diff === 0) {
+    badgeHtml = '<span class="badge badge-admin">Completo</span>';
+    barPct    = 100; barClass = 'rep-bar-ok';
+  } else if (diff > 0) {
+    badgeHtml = `<span class="badge" style="background:var(--color-red-bg);color:var(--color-red-text)">+${diff} ${unidad}</span>`;
+    barPct    = Math.min(100, Math.round(bloquesAsig / horasContrato * 100));
+    barClass  = 'rep-bar-over';
+  } else {
+    badgeHtml = `<span class="badge badge-viewer">${diff} ${unidad}</span>`;
+    barPct    = Math.round(bloquesAsig / horasContrato * 100);
+    barClass  = 'rep-bar-low';
+  }
+
+  const contratoLabel = horasContrato ? `Contrato: ${horasContrato} ${unidad}` : 'Sin contrato cargado';
+  const asigLabel     = `Asignado: ${bloquesAsig} bloques/semana`;
+
+  const detalleRows = detalle.length
+    ? detalle.map(d => `
+        <div class="rep-det-row">
+          <span><span class="rep-det-mat">${d.matNombre}</span> — ${d.curLabel}</span>
+          <span style="display:flex;gap:8px;align-items:center">
+            <span class="badge badge-viewer" style="font-size:10px">${d.estado}</span>
+            <span style="font-weight:500">${d.bloques} bl/sem</span>
+          </span>
+        </div>`).join('')
+    : '<p style="font-size:12px;color:var(--color-text-faint);padding:4px 0">Sin asignaciones cargadas.</p>';
+
+  return `
+    <div class="rep-row" onclick="toggleRepDetalle(${i})" data-rep-idx="${i}">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="user-avatar" style="flex-shrink:0">${ini}</div>
+          <div>
+            <div class="rep-nombre">${p.apellido}, ${p.nombre}</div>
+            <div class="rep-meta">${contratoLabel} · ${asigLabel}</div>
+            <div class="rep-bar-wrap" style="width:160px">
+              <div class="rep-bar ${barClass}" style="width:${barPct}%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="rep-badges">
+        ${badgeHtml}
+        <i class="ti ti-chevron-down" id="rep-chevron-${i}" style="font-size:14px;color:var(--color-text-faint);transition:transform 0.2s"></i>
+      </div>
+    </div>
+    <div class="rep-detalle" id="rep-det-${i}">
+      ${detalleRows}
+    </div>`;
+}
+
+function toggleRepDetalle(i) {
+  const det = document.getElementById(`rep-det-${i}`);
+  const chv = document.getElementById(`rep-chevron-${i}`);
+  const open = det.classList.toggle('open');
+  if (chv) chv.style.transform = open ? 'rotate(180deg)' : '';
+}
+
+function aplicarFiltroReporte() {
+  // Re-renderiza — por simplicidad recarga completa
+  renderReporte();
 }
 
 // ============================================================
