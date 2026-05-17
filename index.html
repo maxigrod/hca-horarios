@@ -2835,7 +2835,7 @@ function _renderUsuariosPanel(usuarios) {
     const esSelf = u.email === USUARIO.email;
 
     const selectorRol = activo && !esSelf ? `
-      <select onchange="cambiarRolUsuario('${u.email}', this.value, ${adminsActivos})"
+      <select onchange="cambiarRolUsuario('${u.email}', this.value, ${adminsActivos})" onclick="event.stopPropagation()"
               style="width:120px;font-size:12px;padding:4px 8px">
         <option value="admin"  ${u.rol==='admin' ?'selected':''}>Admin</option>
         <option value="editor" ${u.rol==='editor'?'selected':''}>Editor</option>
@@ -2843,12 +2843,15 @@ function _renderUsuariosPanel(usuarios) {
       </select>` : rolBadge;
 
     const btnBaja = esSelf ? '' : (activo
-      ? `<button onclick="toggleUsuario('${u.email}', false, '${u.rol}', ${adminsActivos})"
+      ? `<button onclick="event.stopPropagation();toggleUsuario('${u.email}', false, '${u.rol}', ${adminsActivos})"
            style="font-size:11px;padding:3px 10px;color:var(--color-red-text)">Dar de baja</button>`
-      : `<button onclick="toggleUsuario('${u.email}', true, '${u.rol}', ${adminsActivos})"
+      : `<button onclick="event.stopPropagation();toggleUsuario('${u.email}', true, '${u.rol}', ${adminsActivos})"
            style="font-size:11px;padding:3px 10px">Reactivar</button>`);
 
-    return `<tr>
+    return `<tr onclick="abrirEditarUsuario('${u.email}')"
+               style="cursor:pointer;transition:background 0.1s"
+               onmouseover="this.style.background='#f7f7f5'"
+               onmouseout="this.style.background=''">
       <td style="font-weight:500;padding:8px 18px">${u.nombre || '—'}</td>
       <td style="color:var(--color-text-muted);font-size:12px;padding:8px 16px">${u.email}</td>
       <td style="padding:8px 16px">${selectorRol}</td>
@@ -2883,6 +2886,34 @@ function _renderUsuariosPanel(usuarios) {
         </table>
       </div>
     </div>
+
+    <!-- Panel editar usuario (se muestra al hacer click en fila) -->
+    <div id="editar-usuario-form" style="display:none;margin-top:1rem">
+      <div class="card" style="padding:18px;max-width:480px">
+        <p style="font-size:13px;font-weight:500;margin-bottom:4px">Editar usuario</p>
+        <p style="font-size:12px;color:var(--color-text-muted);margin-bottom:14px" id="eu-aviso-email" style="display:none"></p>
+        <div class="field" style="margin-bottom:10px">
+          <label>Nombre completo</label>
+          <input id="eu-nombre" placeholder="Ej: Ana Gómez" />
+        </div>
+        <div class="field" style="margin-bottom:6px">
+          <label>Email institucional</label>
+          <input id="eu-email" type="email" placeholder="usuario@colegioandersen.org" />
+        </div>
+        <p style="font-size:11px;color:var(--color-amber-text);margin-bottom:14px">
+          <i class="ti ti-alert-triangle" style="font-size:11px"></i>
+          El email es el identificador de acceso. Modificarlo cambia cómo el usuario ingresa al sistema.
+        </p>
+        <div style="display:flex;gap:8px">
+          <button class="primary" onclick="guardarEdicionUsuario()" style="font-size:12px">
+            <i class="ti ti-check"></i> Guardar
+          </button>
+          <button onclick="cerrarEditarUsuario()" style="font-size:12px">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel nuevo usuario -->
     <div id="nuevo-usuario-form" style="display:none;margin-top:1rem">
       <div class="card" style="padding:18px;max-width:480px">
         <p style="font-size:13px;font-weight:500;margin-bottom:14px">Nuevo usuario</p>
@@ -2913,6 +2944,7 @@ function _renderUsuariosPanel(usuarios) {
 }
 
 function abrirFormNuevoUsuario() {
+  cerrarEditarUsuario();
   document.getElementById('nuevo-usuario-form').style.display = 'block';
   document.getElementById('nu-email').focus();
 }
@@ -2924,6 +2956,40 @@ function cerrarFormNuevoUsuario() {
   document.getElementById('nu-rol').value    = 'viewer';
 }
 
+function abrirEditarUsuario(email) {
+  const u = _usuariosData.find(u => u.email === email);
+  if (!u) return;
+  cerrarFormNuevoUsuario();
+  document.getElementById('eu-nombre').value = u.nombre || '';
+  document.getElementById('eu-email').value  = u.email  || '';
+  document.getElementById('editar-usuario-form').setAttribute('data-edit-id', u.id);
+  document.getElementById('editar-usuario-form').style.display = 'block';
+  document.getElementById('eu-nombre').focus();
+}
+
+function cerrarEditarUsuario() {
+  const form = document.getElementById('editar-usuario-form');
+  if (form) { form.style.display = 'none'; form.removeAttribute('data-edit-id'); }
+}
+
+async function guardarEdicionUsuario() {
+  const form   = document.getElementById('editar-usuario-form');
+  const id     = form?.getAttribute('data-edit-id');
+  const nombre = document.getElementById('eu-nombre').value.trim();
+  const email  = document.getElementById('eu-email').value.trim().toLowerCase();
+  if (!nombre || !email) { showToast('Completá nombre y email', 'err'); return; }
+  if (!email.endsWith('@colegioandersen.org')) { showToast('El email debe ser @colegioandersen.org', 'err'); return; }
+  // Verificar que el email no esté en uso por otro usuario
+  const otro = _usuariosData.find(u => u.email === email && String(u.id) !== String(id));
+  if (otro) { showToast('Ese email ya está en uso por otro usuario', 'err'); return; }
+  try {
+    await apiPost('editar', 'usuarios', { nombre, email }, id);
+    delete _cache['USUARIOS'];
+    showToast('Usuario actualizado');
+    renderUsuarios();
+  } catch(e) { showToast('Error: ' + e.message, 'err'); }
+}
+
 async function guardarNuevoUsuario(adminsActivos) {
   const email  = document.getElementById('nu-email').value.trim().toLowerCase();
   const nombre = document.getElementById('nu-nombre').value.trim();
@@ -2931,7 +2997,30 @@ async function guardarNuevoUsuario(adminsActivos) {
   if (!email || !nombre) { showToast('Completá email y nombre', 'err'); return; }
   if (!email.endsWith('@colegioandersen.org')) { showToast('El email debe ser @colegioandersen.org', 'err'); return; }
   if (rol === 'admin' && adminsActivos >= MAX_ADMINS) { showToast(`Máximo ${MAX_ADMINS} admins activos permitidos.`, 'err'); return; }
-  if (_usuariosData.find(u => u.email === email)) { showToast('Ya existe un usuario con ese email', 'err'); return; }
+
+  // Verificar duplicado por email
+  const existente = _usuariosData.find(u => u.email === email);
+  if (existente) {
+    if (isTruthy(existente.activo)) {
+      showToast('Ya existe un usuario activo con ese email', 'err'); return;
+    } else {
+      // Existe pero inactivo — ofrecer reactivar
+      confirmar(
+        `"${existente.nombre}" ya existe pero está inactivo`,
+        '¿Querés reactivarlo en lugar de crear uno nuevo?',
+        async () => {
+          try {
+            await apiPost('editar', 'usuarios', { activo: true, nombre, rol }, existente.id);
+            delete _cache['USUARIOS'];
+            showToast(`Usuario "${existente.nombre}" reactivado`);
+            renderUsuarios();
+          } catch(e) { showToast('Error: ' + e.message, 'err'); }
+        }
+      );
+      return;
+    }
+  }
+
   try {
     await apiPost('crear', 'usuarios', { email, nombre, rol, activo: true, fecha_alta: new Date().toISOString().slice(0,10) });
     delete _cache['USUARIOS'];
