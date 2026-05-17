@@ -1504,6 +1504,7 @@ async function abrirFichaMat(id) {
       docentesEliminados: [],
       _profesores: profs.filter(p => isTruthy(p.activo)),
       _asigMat: asigMat,
+      _todasAsig: asignaciones,
       _cursos: cursos,
     };
 
@@ -1637,10 +1638,11 @@ function renderAsigMat() {
 
   // === DIAGNÓSTICO TEMPORAL — borrar después ===
   console.log('=== renderAsigMat ===');
-  console.log('id_materia buscado:', fichaMatState.id);
-  console.log('asignaciones de esta materia:', asig);
-  console.log('todos los profesores (id, apellido):', profs.map(p => `${p.id} — ${p.apellido}`));
-  console.log('todos los cursos (id, año+div):', cursos.map(c => `${c.id} — ${c.año}${c.division}`));
+  console.log('id_materia buscado:', fichaMatState.id, '(tipo:', typeof fichaMatState.id, ')');
+  console.log('asignaciones de esta materia (filtradas):', asig);
+  console.log('TODAS las asignaciones sin filtrar:', fichaMatState._todasAsig?.map(a =>
+    `id=${a.id} | id_materia=${a.id_materia}(${typeof a.id_materia}) | id_prof=${a.id_profesor} | estado=${a.estado}`
+  ));
   // =============================================
 
   if (asig.length === 0) {
