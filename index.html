@@ -210,6 +210,31 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
 .rep-det-row:last-child { border-bottom:none; }
 .rep-det-mat { font-weight:500; color:var(--color-text); }
 
+/* CONFIGURACIÓN */
+.cfg-tabs { display:flex; gap:4px; margin-bottom:1.25rem; border-bottom:0.5px solid var(--color-border); padding-bottom:0; }
+.cfg-tab { background:none; border:none; border-bottom:2px solid transparent; border-radius:0; padding:8px 14px; font-size:13px; color:var(--color-text-muted); cursor:pointer; margin-bottom:-1px; }
+.cfg-tab:hover { color:var(--color-text); background:none; }
+.cfg-tab.active { color:var(--color-blue-text); border-bottom-color:var(--color-blue-text); font-weight:500; }
+.cfg-panel { display:none; }
+.cfg-panel.active { display:block; }
+.estr-list { display:flex; flex-direction:column; gap:8px; margin-bottom:1rem; }
+.estr-item { background:var(--color-surface); border:0.5px solid var(--color-border); border-radius:var(--radius); padding:12px 16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; transition:box-shadow 0.15s; }
+.estr-item:hover { box-shadow:0 2px 8px rgba(0,0,0,0.06); border-color:var(--color-blue-border); }
+.estr-item.selected { border-color:var(--color-blue-border); background:var(--color-blue-bg); }
+.bloques-table { width:100%; border-collapse:collapse; font-size:13px; }
+.bloques-table th { text-align:left; padding:7px 10px; font-size:11px; color:var(--color-text-muted); font-weight:500; border-bottom:0.5px solid var(--color-border); background:var(--color-bg); }
+.bloques-table td { padding:6px 8px; border-bottom:0.5px solid var(--color-border); vertical-align:middle; }
+.bloques-table tr:last-child td { border-bottom:none; }
+.bloques-table tr[draggable] { cursor:grab; }
+.bloques-table tr[draggable]:active { cursor:grabbing; }
+.bloques-table tr.drag-over td { background:var(--color-blue-bg); }
+.bloques-table td input { padding:4px 6px; font-size:12px; }
+.bloques-table td select { padding:4px 6px; font-size:12px; }
+.tipo-badge-academico { background:var(--color-blue-bg); color:var(--color-blue-text); }
+.tipo-badge-recreo    { background:var(--color-green-bg); color:var(--color-green-text); }
+.tipo-badge-almuerzo  { background:var(--color-amber-bg); color:var(--color-amber-text); }
+.drag-handle { color:var(--color-text-faint); cursor:grab; font-size:16px; padding:0 4px; }
+
 .toast { position: fixed; bottom: 20px; right: 20px; background: var(--color-surface); border: 0.5px solid var(--color-border-strong); border-radius: var(--radius); padding: 10px 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
 .toast.show { opacity: 1; }
 
@@ -272,6 +297,10 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
     <div class="nav-divider"></div>
     <button class="nav-item" id="nav-generacion" onclick="goTo('generacion')">
       <i class="ti ti-player-play"></i> Generación
+    </button>
+    <div class="nav-divider"></div>
+    <button class="nav-item" id="nav-config" onclick="goTo('config')">
+      <i class="ti ti-settings"></i> Configuración
     </button>
   </div>
 
@@ -406,6 +435,18 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
       <div id="reporte-container"><div class="loading"><div class="spinner"></div> Cargando...</div></div>
     </div>
 
+    <!-- CONFIGURACIÓN -->
+    <div class="section" id="section-config">
+      <p class="page-title">Configuración</p>
+      <p class="page-sub">Ajustes del sistema</p>
+      <div class="cfg-tabs">
+        <button class="cfg-tab active" id="cfg-tab-estructuras" onclick="activarCfgTab('estructuras')">Estructuras horarias</button>
+      </div>
+      <div id="cfg-panel-estructuras" class="cfg-panel">
+        <div id="cfg-estr-container"></div>
+      </div>
+    </div>
+
     <!-- GENERACION -->
     <div class="section" id="section-generacion">
       <p class="page-title">Generación</p>
@@ -483,6 +524,7 @@ function goTo(section) {
   if (section === 'reglas')     renderReglas();
   if (section === 'profesores') renderListadoProf();
   if (section === 'reporte')    renderReporte();
+  if (section === 'config')     renderConfig();
 }
 
 // ============================================================
@@ -2098,6 +2140,318 @@ function toggleRepDetalle(i) {
   if (!det) return;
   const open = det.classList.toggle('open');
   if (chv) chv.style.transform = open ? 'rotate(180deg)' : '';
+}
+
+// ============================================================
+// CONFIGURACIÓN — tabs
+// ============================================================
+function renderConfig() {
+  activarCfgTab('estructuras');
+}
+
+function activarCfgTab(tab) {
+  document.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('cfg-tab-' + tab)?.classList.add('active');
+  document.getElementById('cfg-panel-' + tab)?.classList.add('active');
+  if (tab === 'estructuras') renderEstructuras();
+}
+
+// ============================================================
+// ESTRUCTURAS HORARIAS
+// ============================================================
+let _estrState = {
+  estructuras: [],
+  idSeleccionada: null,
+  bloques: [],          // bloques de la estructura seleccionada (orden editable)
+  bloquesEditados: {},  // id → campos editados en memoria
+  bloquesNuevos: [],    // bloques agregados aún no guardados
+  bloquesEliminados: [],// ids a eliminar al guardar
+};
+
+async function renderEstructuras() {
+  const cont = document.getElementById('cfg-estr-container');
+  cont.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando...</div>';
+  try {
+    const [estructuras, bloques] = await Promise.all([
+      apiGet('leer','ESTRUCTURA_HORARIA'),
+      apiGet('leer','BLOQUES'),
+    ]);
+    _estrState.estructuras = estructuras;
+    _estrState.bloques     = bloques;
+
+    cont.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <p style="font-size:13px;font-weight:500">Estructuras horarias</p>
+        <button class="primary" onclick="nuevaEstructura()"><i class="ti ti-plus"></i> Nueva estructura</button>
+      </div>
+      <div class="estr-list" id="estr-list">
+        ${estructuras.map(e => _renderEstrItem(e, bloques)).join('')}
+      </div>
+      <div id="estr-bloques-panel"></div>`;
+
+    // Si había una seleccionada, reabrirla
+    if (_estrState.idSeleccionada) abrirEstructura(_estrState.idSeleccionada);
+
+  } catch(e) {
+    cont.innerHTML = `<p style="color:var(--color-red-text)">Error: ${e.message}</p>`;
+  }
+}
+
+function _renderEstrItem(e, bloques) {
+  const nBloques   = bloques.filter(b => String(b.id_estructura) === String(e.id)).length;
+  const esDefault  = isTruthy(e.es_default);
+  const seleccionada = String(_estrState.idSeleccionada) === String(e.id);
+  return `
+    <div class="estr-item ${seleccionada?'selected':''}" id="estr-item-${e.id}" onclick="abrirEstructura('${e.id}')">
+      <div>
+        <div style="font-size:13px;font-weight:500">${e.nombre}
+          ${esDefault ? '<span class="badge badge-admin" style="margin-left:8px;font-size:10px">Default</span>' : ''}
+        </div>
+        <div style="font-size:12px;color:var(--color-text-muted);margin-top:2px">${nBloques} bloques configurados</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button onclick="event.stopPropagation();editarNombreEstr('${e.id}','${e.nombre.replace(/'/g,"\\'")}',${esDefault})" style="padding:4px 8px;font-size:12px"><i class="ti ti-pencil"></i></button>
+        ${!esDefault ? `<button onclick="event.stopPropagation();eliminarEstr('${e.id}')" style="padding:4px 8px;font-size:12px;color:var(--color-red-text)"><i class="ti ti-trash"></i></button>` : ''}
+      </div>
+    </div>`;
+}
+
+function abrirEstructura(idEstr) {
+  _estrState.idSeleccionada  = idEstr;
+  _estrState.bloquesEditados = {};
+  _estrState.bloquesNuevos  = [];
+  _estrState.bloquesEliminados = [];
+
+  // Marcar seleccionada visualmente
+  document.querySelectorAll('.estr-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById(`estr-item-${idEstr}`)?.classList.add('selected');
+
+  const estr   = _estrState.estructuras.find(e => String(e.id) === String(idEstr));
+  const bloques = _estrState.bloques
+    .filter(b => String(b.id_estructura) === String(idEstr))
+    .sort((a,b) => {
+      // Ordenar: primero por hora_inicio como string HH:MM
+      const ta = a.hora_inicio || ''; const tb = b.hora_inicio || '';
+      return ta.localeCompare(tb);
+    });
+
+  _estrState._bloquesOrden = bloques.map(b => String(b.id)); // orden drag
+
+  _renderBloquesPanelEstr(estr, bloques);
+}
+
+function _renderBloquesPanelEstr(estr, bloques) {
+  const panel = document.getElementById('estr-bloques-panel');
+  const rows = bloques.map((b, i) => _renderBloqueRow(b, i)).join('');
+
+  panel.innerHTML = `
+    <div class="card" style="padding:0;overflow:hidden;margin-top:1rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:0.5px solid var(--color-border)">
+        <span style="font-size:13px;font-weight:500">Bloques — ${estr?.nombre||''}</span>
+        <div style="display:flex;gap:8px">
+          <button onclick="agregarBloqueEstr()" style="font-size:12px;padding:5px 10px"><i class="ti ti-plus"></i> Agregar bloque</button>
+          <button class="primary" onclick="guardarBloquesEstr()" style="font-size:12px;padding:5px 10px"><i class="ti ti-device-floppy"></i> Guardar cambios</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="bloques-table">
+          <thead><tr>
+            <th style="width:28px"></th>
+            <th>N°</th>
+            <th>Tipo</th>
+            <th>Hora inicio</th>
+            <th>Hora fin</th>
+            <th>Duración (min)</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="bloques-tbody">${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+  _initDragDrop();
+}
+
+function _renderBloqueRow(b, i) {
+  const id      = b.id || b._tempId;
+  const tipo    = b.tipo || 'academico';
+  const tipoClass = { academico:'tipo-badge-academico', recreo:'tipo-badge-recreo', almuerzo:'tipo-badge-almuerzo' }[tipo] || '';
+  const numero  = b.tipo === 'academico' ? (b.numero || '') : '—';
+
+  return `<tr draggable="true" data-id="${id}" data-idx="${i}">
+    <td><span class="drag-handle"><i class="ti ti-grip-vertical"></i></span></td>
+    <td style="color:var(--color-text-muted);font-size:12px;text-align:center">${numero}</td>
+    <td>
+      <select onchange="editarBloque('${id}','tipo',this.value);this.closest('tr').querySelector('td:nth-child(2)').textContent=this.value==='academico'?(document.querySelectorAll('tr[draggable] select').length):'—'" style="width:110px">
+        <option value="academico" ${tipo==='academico'?'selected':''}>Académico</option>
+        <option value="recreo"    ${tipo==='recreo'   ?'selected':''}>Recreo</option>
+        <option value="almuerzo"  ${tipo==='almuerzo' ?'selected':''}>Almuerzo</option>
+      </select>
+    </td>
+    <td><input type="text" value="${b.hora_inicio||''}" placeholder="8:15" style="width:70px" onchange="editarBloque('${id}','hora_inicio',this.value)" /></td>
+    <td><input type="text" value="${b.hora_fin||''}"   placeholder="8:55" style="width:70px" onchange="editarBloque('${id}','hora_fin',this.value)"   /></td>
+    <td><input type="number" value="${b.duracion_min||''}" min="1" max="180" style="width:70px;text-align:center" onchange="editarBloque('${id}','duracion_min',this.value)" /></td>
+    <td><button onclick="eliminarBloqueEstr('${id}')" style="padding:3px 7px;font-size:12px;color:var(--color-red-text)"><i class="ti ti-trash"></i></button></td>
+  </tr>`;
+}
+
+function editarBloque(id, campo, valor) {
+  if (!_estrState.bloquesEditados[id]) _estrState.bloquesEditados[id] = {};
+  _estrState.bloquesEditados[id][campo] = valor;
+}
+
+function eliminarBloqueEstr(id) {
+  const esNuevo = String(id).startsWith('new_');
+  if (esNuevo) {
+    _estrState.bloquesNuevos = _estrState.bloquesNuevos.filter(b => b._tempId !== id);
+  } else {
+    _estrState.bloquesEliminados.push(id);
+  }
+  // Quitar del DOM sin recargar
+  document.querySelector(`tr[data-id="${id}"]`)?.remove();
+  // Actualizar orden
+  _estrState._bloquesOrden = _estrState._bloquesOrden.filter(x => x !== String(id));
+}
+
+function agregarBloqueEstr() {
+  const tempId = 'new_' + Date.now();
+  const nuevo  = { _tempId: tempId, id: tempId, id_estructura: _estrState.idSeleccionada, tipo:'academico', hora_inicio:'', hora_fin:'', duracion_min:'', numero:'' };
+  _estrState.bloquesNuevos.push(nuevo);
+  _estrState._bloquesOrden.push(tempId);
+  const tbody = document.getElementById('bloques-tbody');
+  const tr = document.createElement('tr');
+  tr.setAttribute('draggable','true');
+  tr.setAttribute('data-id', tempId);
+  tr.innerHTML = _renderBloqueRow(nuevo, tbody.children.length).replace(/^<tr[^>]*>/,'').replace(/<\/tr>$/,'');
+  tbody.appendChild(tr);
+  _initDragDrop();
+}
+
+async function guardarBloquesEstr() {
+  const idEstr = _estrState.idSeleccionada;
+  if (!idEstr) return;
+  try {
+    // 1. Eliminar los marcados para borrar
+    for (const id of _estrState.bloquesEliminados) {
+      await apiPost('eliminar','bloques',{}, id);
+    }
+    // 2. Crear los nuevos
+    for (const b of _estrState.bloquesNuevos) {
+      // Leer valores actuales del DOM (pueden haber sido editados inline)
+      const edits = _estrState.bloquesEditados[b._tempId] || {};
+      await apiPost('crear','bloques',{
+        id_estructura: idEstr,
+        tipo:          edits.tipo         || b.tipo         || 'academico',
+        hora_inicio:   edits.hora_inicio  || b.hora_inicio  || '',
+        hora_fin:      edits.hora_fin     || b.hora_fin      || '',
+        duracion_min:  edits.duracion_min || b.duracion_min || '',
+        numero:        edits.numero       || b.numero       || '',
+      });
+    }
+    // 3. Editar los existentes modificados
+    for (const [id, cambios] of Object.entries(_estrState.bloquesEditados)) {
+      if (String(id).startsWith('new_')) continue; // ya creados arriba
+      await apiPost('editar','bloques', cambios, id);
+    }
+    // 4. Renumerar bloques académicos según orden drag
+    await _renumerarBloques(idEstr);
+
+    delete _cache['BLOQUES'];
+    _bloquesCache = null; // forzar recarga de bloques en disponibilidad
+    showToast('Estructura guardada');
+    // Recargar
+    const bloques = await apiGet('leer','BLOQUES');
+    _estrState.bloques = bloques;
+    _estrState.bloquesEditados  = {};
+    _estrState.bloquesNuevos    = [];
+    _estrState.bloquesEliminados = [];
+    abrirEstructura(idEstr);
+  } catch(e) { showToast('Error: ' + e.message, 'err'); }
+}
+
+async function _renumerarBloques(idEstr) {
+  // Asigna número secuencial a los bloques académicos según el orden actual del DOM
+  const filas = [...document.querySelectorAll('#bloques-tbody tr[data-id]')];
+  let num = 1;
+  for (const fila of filas) {
+    const id   = fila.getAttribute('data-id');
+    const tipo = fila.querySelector('select')?.value || 'academico';
+    if (tipo === 'academico' && !String(id).startsWith('new_')) {
+      await apiPost('editar','bloques',{ numero: num }, id);
+      num++;
+    }
+  }
+}
+
+// ---- nueva estructura ----
+function nuevaEstructura() {
+  const nombre = prompt('Nombre de la nueva estructura:');
+  if (!nombre?.trim()) return;
+  apiPost('crear','estructura_horaria',{ nombre: nombre.trim(), es_default: false })
+    .then(() => { delete _cache['ESTRUCTURA_HORARIA']; renderEstructuras(); showToast('Estructura creada'); })
+    .catch(e => showToast('Error: ' + e.message, 'err'));
+}
+
+function editarNombreEstr(id, nombreActual, esDefault) {
+  const nuevo = prompt('Nuevo nombre:', nombreActual);
+  if (!nuevo?.trim() || nuevo.trim() === nombreActual) return;
+  apiPost('editar','estructura_horaria',{ nombre: nuevo.trim() }, id)
+    .then(() => { delete _cache['ESTRUCTURA_HORARIA']; renderEstructuras(); showToast('Nombre actualizado'); })
+    .catch(e => showToast('Error: ' + e.message, 'err'));
+}
+
+function eliminarEstr(id) {
+  const bl = _estrState.bloques.filter(b => String(b.id_estructura) === String(id)).length;
+  const msg = bl > 0
+    ? `Esta estructura tiene ${bl} bloques que también se eliminarán. ¿Confirmás?`
+    : '¿Eliminás esta estructura?';
+  confirmar('Eliminar estructura', msg, async () => {
+    try {
+      // Eliminar bloques primero
+      const bloquesEstr = _estrState.bloques.filter(b => String(b.id_estructura) === String(id));
+      for (const b of bloquesEstr) await apiPost('eliminar','bloques',{}, b.id);
+      await apiPost('eliminar','estructura_horaria',{}, id);
+      delete _cache['ESTRUCTURA_HORARIA']; delete _cache['BLOQUES'];
+      _estrState.idSeleccionada = null;
+      document.getElementById('estr-bloques-panel').innerHTML = '';
+      renderEstructuras();
+      showToast('Estructura eliminada');
+    } catch(e) { showToast('Error: ' + e.message, 'err'); }
+  });
+}
+
+// ---- drag & drop ----
+function _initDragDrop() {
+  const tbody = document.getElementById('bloques-tbody');
+  if (!tbody) return;
+  let dragging = null;
+
+  tbody.querySelectorAll('tr[draggable]').forEach(row => {
+    row.addEventListener('dragstart', e => {
+      dragging = row;
+      setTimeout(() => row.style.opacity = '0.4', 0);
+    });
+    row.addEventListener('dragend', () => {
+      row.style.opacity = '';
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+      // Actualizar orden interno
+      _estrState._bloquesOrden = [...tbody.querySelectorAll('tr[data-id]')].map(r => r.getAttribute('data-id'));
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (dragging && dragging !== row) {
+        tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+        row.classList.add('drag-over');
+        const rect = row.getBoundingClientRect();
+        const mid  = rect.top + rect.height / 2;
+        if (e.clientY < mid) tbody.insertBefore(dragging, row);
+        else tbody.insertBefore(dragging, row.nextSibling);
+      }
+    });
+    row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+    row.addEventListener('drop', e => { e.preventDefault(); row.classList.remove('drag-over'); });
+  });
 }
 
 // ============================================================
