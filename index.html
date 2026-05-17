@@ -1465,11 +1465,13 @@ async function abrirFichaMat(id) {
   const cont = document.getElementById('mat-ficha');
   cont.innerHTML = '<div class="loading" style="padding:2rem"><div class="spinner"></div> Cargando ficha...</div>';
   try {
-    const [mats, cargas, matDocentes, profs] = await Promise.all([
+    const [mats, cargas, matDocentes, profs, asignaciones, cursos] = await Promise.all([
       apiGet('leer','MATERIAS'),
       apiGet('leer','CARGA_HORARIA'),
       apiGet('leer','MATERIA_DOCENTES'),
       apiGet('leer','PROFESORES'),
+      apiGet('leer','ASIGNACIONES'),
+      apiGet('leer','CURSOS'),
     ]);
     const mat = mats.find(m => String(m.id) === String(id));
     if (!mat) throw new Error('Materia no encontrada');
@@ -1490,12 +1492,19 @@ async function abrirFichaMat(id) {
     // Docentes asignados a esta materia compartida
     const docentesMat = matDocentes.filter(d => String(d.id_materia) === String(mat.id));
 
+    // Asignaciones activas de esta materia → para la sección "Quién la da y en qué curso"
+    const asigMat = asignaciones.filter(a =>
+      String(a.id_materia) === String(mat.id) && a.estado !== 'archivado'
+    );
+
     fichaMatState = {
       id: mat.id, nombre: mat.nombre||'', area: mat.area||'', activa,
       compartida: isTruthy(mat.compartida), cargaEdit,
-      docentes: docentesMat,          // filas existentes en MATERIA_DOCENTES
-      docentesEliminados: [],         // ids a eliminar al guardar
-      _profesores: profs.filter(p => isTruthy(p.activo)), // para los selects
+      docentes: docentesMat,
+      docentesEliminados: [],
+      _profesores: profs.filter(p => isTruthy(p.activo)),
+      _asigMat: asigMat,
+      _cursos: cursos,
     };
 
     cont.innerHTML = `
@@ -1568,6 +1577,11 @@ async function abrirFichaMat(id) {
           </table>
         </div>
 
+        <div class="ficha-section" id="fi-asig-section">
+          <div class="ficha-section-title">Docentes asignados</div>
+          <div id="fi-asig-body"></div>
+        </div>
+
         <div class="ficha-actions">
           <button class="danger" onclick="confirmarBajaMat()">${activa?'<i class="ti ti-eye-off"></i> Dar de baja':'<i class="ti ti-eye"></i> Reactivar'}</button>
           <button class="primary" onclick="guardarFichaMat()"><i class="ti ti-check"></i> Guardar cambios</button>
@@ -1580,8 +1594,11 @@ async function abrirFichaMat(id) {
     // Renderizar tabla de carga
     renderCargaFichaBody();
 
-    // Renderizar tabla de docentes compartidos
+    // Renderizar docentes compartidos
     renderDocentesTbody();
+
+    // Renderizar asignaciones activas
+    renderAsigMat();
 
   } catch(e) { cont.innerHTML = `<p style="color:var(--color-red-text);padding:1rem">Error: ${e.message}</p>`; }
 }
@@ -1610,6 +1627,59 @@ function toggleAñoFichaMat(a) {
   renderCargaFichaBody();
 }
 function setBloquesAñoFichaMat(a, val) { fichaMatState.cargaEdit[a].bloques = parseInt(val) || 0; }
+
+function renderAsigMat() {
+  const cont = document.getElementById('fi-asig-body');
+  if (!cont) return;
+  const asig    = fichaMatState._asigMat || [];
+  const profs   = fichaMatState._profesores || [];
+  const cursos  = fichaMatState._cursos || [];
+
+  if (asig.length === 0) {
+    cont.innerHTML = `<p style="font-size:12px;color:var(--color-text-faint);padding:4px 0">
+      Sin asignaciones activas para esta materia.
+    </p>`;
+    return;
+  }
+
+  // Agrupar por profesor
+  const porProf = {};
+  asig.forEach(a => {
+    const pid = String(a.id_profesor);
+    if (!porProf[pid]) porProf[pid] = [];
+    porProf[pid].push(a);
+  });
+
+  const filas = Object.entries(porProf).map(([pid, asigs]) => {
+    const prof = profs.find(p => String(p.id) === pid);
+    const nombreProf = prof ? `${prof.apellido}, ${prof.nombre}` : `Profesor id=${pid}`;
+
+    const cursosList = asigs.map(a => {
+      const curso = cursos.find(c => String(c.id) === String(a.id_curso));
+      if (!curso) return `Curso id=${a.id_curso}`;
+      const nombre = curso.nombre_personalizado
+        ? `${curso.año}°${curso.division} — ${curso.nombre_personalizado}`
+        : `${curso.año}°${curso.division}`;
+      return `<span class="badge" style="background:var(--color-blue-bg);color:var(--color-blue-text);margin:2px">${nombre}</span>`;
+    }).join(' ');
+
+    return `<tr>
+      <td style="padding:8px 12px;font-size:13px;font-weight:500;white-space:nowrap">${nombreProf}</td>
+      <td style="padding:8px 12px">${cursosList}</td>
+    </tr>`;
+  }).join('');
+
+  cont.innerHTML = `
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr style="font-size:11px;color:var(--color-text-muted);border-bottom:0.5px solid var(--color-border)">
+          <th style="padding:6px 12px;font-weight:500;text-align:left">Profesor</th>
+          <th style="padding:6px 12px;font-weight:500;text-align:left">Cursos</th>
+        </tr>
+      </thead>
+      <tbody>${filas}</tbody>
+    </table>`;
+}
 
 function guardarFichaMat() {
   confirmar('¿Confirmamos los cambios?', `Se actualizarán los datos de ${document.getElementById('fi-mat-nombre')?.value || fichaMatState.nombre}.`, async () => {
