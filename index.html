@@ -1905,6 +1905,9 @@ async function wizCurGuardar() {
 // ============================================================
 // REPORTE DE HORAS
 // ============================================================
+let _repDatos  = [];   // datos calculados — se recalculan solo al entrar a la sección
+let _repFiltros = { estado: 'todas', sit: 'todos' };
+
 async function renderReporte() {
   const cont = document.getElementById('reporte-container');
   cont.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando reporte...</div>';
@@ -1919,63 +1922,46 @@ async function renderReporte() {
 
     const esViewer = USUARIO.rol === 'viewer';
 
-    // Construir datos por profesor
+    // Construir datos completos por profesor (sin filtrar por estado aún)
     const activos = profs.filter(p => isTruthy(p.activo));
-    const datos = activos.map(p => {
+    _repDatos = activos.map(p => {
       const asigProf = asigs.filter(a =>
-        String(a.id_profesor) === String(p.id) &&
-        a.estado !== 'archivado' &&
-        (!esViewer || a.estado === 'publicado')
+        String(a.id_profesor) === String(p.id) && a.estado !== 'archivado'
       );
-
-      // Por cada asignación, buscar los bloques semanales en CARGA_HORARIA
-      // (materia X en el año del curso Y)
       const detalle = asigProf.map(a => {
-        const mat    = mats.find(m => String(m.id) === String(a.id_materia));
-        const curso  = cursos.find(c => String(c.id) === String(a.id_curso));
-        const carga  = cargas.find(c =>
+        const mat   = mats.find(m => String(m.id) === String(a.id_materia));
+        const curso = cursos.find(c => String(c.id) === String(a.id_curso));
+        const carga = cargas.find(c =>
           String(c.id_materia) === String(a.id_materia) &&
           String(c.año) === String(curso?.año)
         );
-        const bloques = Number(carga?.bloques_semanales) || 0;
         return {
-          matNombre:  mat?.nombre || `Materia #${a.id_materia}`,
-          curLabel:   curso ? `${curso.año}° ${curso.division}` : `Curso #${a.id_curso}`,
-          bloques,
-          estado:     a.estado,
+          matNombre: mat?.nombre || `Materia #${a.id_materia}`,
+          curLabel:  curso ? `${curso.año}° ${curso.division}` : `Curso #${a.id_curso}`,
+          bloques:   Number(carga?.bloques_semanales) || 0,
+          estado:    a.estado || 'borrador',
         };
       });
-
-      const bloquesAsig   = detalle.reduce((s, d) => s + d.bloques, 0);
       const horasContrato = Number(p.horas_contrato) || 0;
       const unidad        = p.unidad_contrato === 'modulos' ? 'mód' : 'hs';
-      const diff          = horasContrato ? bloquesAsig - horasContrato : null;
-
-      return { p, detalle, bloquesAsig, horasContrato, unidad, diff };
+      return { p, detalle, horasContrato, unidad, esViewer };
     });
 
-    // Métricas de resumen
-    const conContrato    = datos.filter(d => d.horasContrato > 0);
-    const completos      = conContrato.filter(d => d.diff !== null && d.diff === 0).length;
-    const sobreasignados = conContrato.filter(d => d.diff !== null && d.diff > 0).length;
-    const subasignados   = conContrato.filter(d => d.diff !== null && d.diff < 0).length;
-    const sinContrato    = datos.filter(d => d.horasContrato === 0).length;
-
-    // Filtro de estado (solo admin/editor)
+    // Armar shell con filtros (persiste entre cambios)
     const filtroHtml = !esViewer ? `
       <div class="card" style="padding:12px 16px;margin-bottom:1rem">
         <div class="list-toolbar">
           <div class="field" style="margin-bottom:0">
             <label>Mostrar asignaciones</label>
-            <select id="rep-estado-fil" onchange="renderReporte()" style="width:auto">
+            <select id="rep-estado-fil" onchange="onRepFiltroEstado(this.value)" style="width:auto">
               <option value="todas">Borrador + Publicadas</option>
               <option value="borrador">Solo borrador</option>
               <option value="publicado">Solo publicadas</option>
             </select>
           </div>
           <div class="field" style="margin-bottom:0">
-            <label>Estado del docente</label>
-            <select id="rep-sit-fil" onchange="aplicarFiltroReporte()" style="width:auto">
+            <label>Situación del docente</label>
+            <select id="rep-sit-fil" onchange="onRepFiltroSit(this.value)" style="width:auto">
               <option value="todos">Todos</option>
               <option value="ok">Completos</option>
               <option value="sobre">Sobreasignados</option>
@@ -1988,73 +1974,113 @@ async function renderReporte() {
 
     cont.innerHTML = `
       ${filtroHtml}
-      <div class="reporte-resumen">
-        <div class="rep-card"><div class="rep-card-label">Docentes activos</div><div class="rep-card-value">${datos.length}</div></div>
-        <div class="rep-card"><div class="rep-card-label" style="color:#1D9E75">Completos</div><div class="rep-card-value" style="color:#1D9E75">${completos}</div></div>
-        <div class="rep-card"><div class="rep-card-label" style="color:#E24B4A">Sobreasignados</div><div class="rep-card-value" style="color:#E24B4A">${sobreasignados}</div></div>
-        <div class="rep-card"><div class="rep-card-label" style="color:#BA7517">Subasignados</div><div class="rep-card-value" style="color:#BA7517">${subasignados}</div></div>
-      </div>
+      <div class="reporte-resumen" id="rep-resumen"></div>
       <div class="card" style="padding:0;overflow:hidden">
-        <div id="rep-lista">
-          ${datos.map((d, i) => _renderRepRow(d, i)).join('')}
-        </div>
+        <div id="rep-lista"></div>
       </div>`;
+
+    // Restaurar valores de filtros si ya existían
+    if (!esViewer) {
+      document.getElementById('rep-estado-fil').value = _repFiltros.estado;
+      document.getElementById('rep-sit-fil').value    = _repFiltros.sit;
+    }
+
+    _repAplicarFiltros();
 
   } catch(e) {
     cont.innerHTML = `<p style="color:var(--color-red-text);padding:1rem">Error: ${e.message}</p>`;
   }
 }
 
+function onRepFiltroEstado(val) { _repFiltros.estado = val; _repAplicarFiltros(); }
+function onRepFiltroSit(val)    { _repFiltros.sit    = val; _repAplicarFiltros(); }
+
+function _repAplicarFiltros() {
+  const esViewer  = USUARIO.rol === 'viewer';
+  const filEstado = esViewer ? 'publicado' : _repFiltros.estado;
+  const filSit    = _repFiltros.sit;
+
+  // Calcular bloques según filtro de estado para cada profesor
+  const calculados = _repDatos.map(d => {
+    const detFiltrado = d.detalle.filter(det =>
+      filEstado === 'todas' || det.estado === filEstado
+    );
+    const bloquesAsig = detFiltrado.reduce((s, x) => s + x.bloques, 0);
+    const diff        = d.horasContrato ? bloquesAsig - d.horasContrato : null;
+    return { ...d, detFiltrado, bloquesAsig, diff };
+  });
+
+  // Filtro de situación
+  const visibles = calculados.filter(d => {
+    if (filSit === 'todos')  return true;
+    if (filSit === 'sin')    return d.horasContrato === 0;
+    if (filSit === 'ok')     return d.diff === 0;
+    if (filSit === 'sobre')  return d.diff !== null && d.diff > 0;
+    if (filSit === 'bajo')   return d.diff !== null && d.diff < 0;
+    return true;
+  });
+
+  // Métricas (siempre sobre el total con el filtro de estado, sin filtro de situación)
+  const conContrato    = calculados.filter(d => d.horasContrato > 0);
+  const completos      = conContrato.filter(d => d.diff === 0).length;
+  const sobreasignados = conContrato.filter(d => d.diff > 0).length;
+  const subasignados   = conContrato.filter(d => d.diff < 0).length;
+
+  document.getElementById('rep-resumen').innerHTML = `
+    <div class="rep-card"><div class="rep-card-label">Docentes activos</div><div class="rep-card-value">${calculados.length}</div></div>
+    <div class="rep-card"><div class="rep-card-label" style="color:#1D9E75">Completos</div><div class="rep-card-value" style="color:#1D9E75">${completos}</div></div>
+    <div class="rep-card"><div class="rep-card-label" style="color:#E24B4A">Sobreasignados</div><div class="rep-card-value" style="color:#E24B4A">${sobreasignados}</div></div>
+    <div class="rep-card"><div class="rep-card-label" style="color:#BA7517">Subasignados</div><div class="rep-card-value" style="color:#BA7517">${subasignados}</div></div>`;
+
+  document.getElementById('rep-lista').innerHTML = visibles.length
+    ? visibles.map((d, i) => _renderRepRow(d, i)).join('')
+    : '<p style="padding:1.5rem;color:var(--color-text-muted);font-size:13px">Sin resultados para el filtro seleccionado.</p>';
+}
+
 function _renderRepRow(d, i) {
-  const { p, detalle, bloquesAsig, horasContrato, unidad, diff } = d;
+  const { p, detFiltrado, bloquesAsig, horasContrato, unidad, diff } = d;
   const ini = ((p.apellido||'')[0]||'').toUpperCase() + ((p.nombre||'')[0]||'').toUpperCase();
 
-  // Badge de situación
-  let badgeHtml = '';
-  let barClass  = 'rep-bar-low';
-  let barPct    = 0;
+  let badgeHtml, barClass, barPct;
   if (!horasContrato) {
     badgeHtml = '<span class="badge badge-viewer">Sin contrato</span>';
-    barPct    = bloquesAsig > 0 ? 100 : 0;
-    barClass  = 'rep-bar-low';
+    barPct = 0; barClass = 'rep-bar-low';
   } else if (diff === 0) {
     badgeHtml = '<span class="badge badge-admin">Completo</span>';
-    barPct    = 100; barClass = 'rep-bar-ok';
+    barPct = 100; barClass = 'rep-bar-ok';
   } else if (diff > 0) {
     badgeHtml = `<span class="badge" style="background:var(--color-red-bg);color:var(--color-red-text)">+${diff} ${unidad}</span>`;
-    barPct    = Math.min(100, Math.round(bloquesAsig / horasContrato * 100));
-    barClass  = 'rep-bar-over';
+    barPct = Math.min(100, Math.round(bloquesAsig / horasContrato * 100));
+    barClass = 'rep-bar-over';
   } else {
     badgeHtml = `<span class="badge badge-viewer">${diff} ${unidad}</span>`;
-    barPct    = Math.round(bloquesAsig / horasContrato * 100);
-    barClass  = 'rep-bar-low';
+    barPct = Math.max(0, Math.round(bloquesAsig / horasContrato * 100));
+    barClass = 'rep-bar-low';
   }
 
   const contratoLabel = horasContrato ? `Contrato: ${horasContrato} ${unidad}` : 'Sin contrato cargado';
-  const asigLabel     = `Asignado: ${bloquesAsig} bloques/semana`;
+  const asigLabel     = `Asignado: ${bloquesAsig} bl/sem`;
 
-  const detalleRows = detalle.length
-    ? detalle.map(d => `
+  const detalleRows = detFiltrado.length
+    ? detFiltrado.map(x => `
         <div class="rep-det-row">
-          <span><span class="rep-det-mat">${d.matNombre}</span> — ${d.curLabel}</span>
+          <span><span class="rep-det-mat">${x.matNombre}</span> — ${x.curLabel}</span>
           <span style="display:flex;gap:8px;align-items:center">
-            <span class="badge badge-viewer" style="font-size:10px">${d.estado}</span>
-            <span style="font-weight:500">${d.bloques} bl/sem</span>
+            <span class="badge badge-viewer" style="font-size:10px">${x.estado}</span>
+            <span style="font-weight:500">${x.bloques} bl/sem</span>
           </span>
         </div>`).join('')
-    : '<p style="font-size:12px;color:var(--color-text-faint);padding:4px 0">Sin asignaciones cargadas.</p>';
+    : '<p style="font-size:12px;color:var(--color-text-faint);padding:4px 0">Sin asignaciones para el filtro actual.</p>';
 
   return `
-    <div class="rep-row" onclick="toggleRepDetalle(${i})" data-rep-idx="${i}">
-      <div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="user-avatar" style="flex-shrink:0">${ini}</div>
-          <div>
-            <div class="rep-nombre">${p.apellido}, ${p.nombre}</div>
-            <div class="rep-meta">${contratoLabel} · ${asigLabel}</div>
-            <div class="rep-bar-wrap" style="width:160px">
-              <div class="rep-bar ${barClass}" style="width:${barPct}%"></div>
-            </div>
+    <div class="rep-row" onclick="toggleRepDetalle(${i})">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="user-avatar" style="flex-shrink:0">${ini}</div>
+        <div style="flex:1">
+          <div class="rep-nombre">${p.apellido}, ${p.nombre}</div>
+          <div class="rep-meta">${contratoLabel} · ${asigLabel}</div>
+          <div class="rep-bar-wrap" style="width:160px">
+            <div class="rep-bar ${barClass}" style="width:${barPct}%"></div>
           </div>
         </div>
       </div>
@@ -2063,21 +2089,15 @@ function _renderRepRow(d, i) {
         <i class="ti ti-chevron-down" id="rep-chevron-${i}" style="font-size:14px;color:var(--color-text-faint);transition:transform 0.2s"></i>
       </div>
     </div>
-    <div class="rep-detalle" id="rep-det-${i}">
-      ${detalleRows}
-    </div>`;
+    <div class="rep-detalle" id="rep-det-${i}">${detalleRows}</div>`;
 }
 
 function toggleRepDetalle(i) {
   const det = document.getElementById(`rep-det-${i}`);
   const chv = document.getElementById(`rep-chevron-${i}`);
+  if (!det) return;
   const open = det.classList.toggle('open');
   if (chv) chv.style.transform = open ? 'rotate(180deg)' : '';
-}
-
-function aplicarFiltroReporte() {
-  // Re-renderiza — por simplicidad recarga completa
-  renderReporte();
 }
 
 // ============================================================
