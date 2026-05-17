@@ -503,13 +503,31 @@ document.getElementById('modal-ok-btn').onclick = async () => { const cb = _moda
 const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes'];
 let _bloquesCache = null;
 
+function _parsearHora(val) {
+  // Sheets devuelve las horas como objetos Date serializados en ISO (ej: "1899-12-30T11:15:00.000Z")
+  // También puede venir como string "HH:MM" si se guardó como texto — manejamos ambos casos.
+  if (!val) return '';
+  const s = String(val);
+  if (s.includes('T')) {
+    // Formato ISO: extraer HH:MM sumando el offset UTC para que quede en hora local del string
+    // 1899-12-30T08:15:00.000Z → 8:15
+    const match = s.match(/T(\d{2}):(\d{2})/);
+    if (match) return `${parseInt(match[1])}:${match[2]}`;
+  }
+  return s; // ya es "HH:MM"
+}
+
 async function getBloques() {
   if (_bloquesCache) return _bloquesCache;
   try {
     const todos = await apiGet('leer','BLOQUES');
     const academicos = todos.filter(b => b.tipo === 'academico').sort((a,b) => Number(a.numero) - Number(b.numero));
     if (academicos.length) {
-      _bloquesCache = academicos.map(b => ({ num: Number(b.numero), label: b.numero + '°', hora: b.hora_inicio + '–' + b.hora_fin }));
+      _bloquesCache = academicos.map(b => ({
+        num:   Number(b.numero),
+        label: b.numero + '°',
+        hora:  _parsearHora(b.hora_inicio) + '–' + _parsearHora(b.hora_fin)
+      }));
       return _bloquesCache;
     }
   } catch {}
@@ -1089,7 +1107,16 @@ function renderTablaMat(mats, cargas) {
 }
 
 // ---------- wizard alta ----------
-function resetMatState() { matState = { step:1, carga:{} }; AÑOS.forEach(a => matState.carga[a] = { activo:false, bloques:0 }); }
+function resetMatState() { matState = { step:1, carga:{}, compartida: false }; AÑOS.forEach(a => matState.carga[a] = { activo:false, bloques:0 }); }
+
+function setCompartidaWiz(val) {
+  matState.compartida = val;
+  document.getElementById('btn-no-comp').classList.toggle('selected', !val);
+  document.getElementById('btn-si-comp').classList.toggle('selected',  val);
+  document.getElementById('comp-hint').textContent = val
+    ? 'Varios profesores dictan esta materia en simultáneo a grupos distintos (ej: Arte, Ed. Física).'
+    : 'Un único profesor dicta esta materia por curso.';
+}
 async function initWizardMat() { resetMatState(); renderStepsMat(); renderPanelMat(1); }
 
 function renderStepsMat() {
@@ -1106,7 +1133,7 @@ function renderPanelMat(step) {
   if (step === 1) {
     cont.innerHTML = `
       <p class="panel-title">Datos de la materia</p>
-      <p class="panel-sub">Nombre y área curricular.</p>
+      <p class="panel-sub">Nombre, área curricular y tipo.</p>
       <div class="field"><label>Nombre *</label><input id="m-nombre" value="${matState.nombre||''}" placeholder="Ej: Matemática" /></div>
       <div class="field"><label>Área curricular <span style="color:var(--color-text-faint)">(opcional)</span></label>
         <select id="m-area">
@@ -1115,6 +1142,18 @@ function renderPanelMat(step) {
           <option>Lengua y Literatura</option><option>Lenguas Extranjeras</option><option>Educación Física</option>
           <option>Arte</option><option>Formación Ética</option><option>Tecnología</option>
         </select>
+      </div>
+      <div class="field">
+        <label>¿Es una materia compartida?</label>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button id="btn-no-comp" class="chip ${matState.compartida ? '' : 'selected'}" onclick="setCompartidaWiz(false)">No compartida</button>
+          <button id="btn-si-comp" class="chip ${matState.compartida ? 'selected' : ''}" onclick="setCompartidaWiz(true)">Compartida</button>
+        </div>
+        <p style="font-size:12px;color:var(--color-text-faint);margin-top:6px" id="comp-hint">
+          ${matState.compartida
+            ? 'Varios profesores dictan esta materia en simultáneo a grupos distintos (ej: Arte, Ed. Física).'
+            : 'Un único profesor dicta esta materia por curso.'}
+        </p>
       </div>
       <div class="btn-row"><span></span><button class="primary" onclick="avanzarMat2()">Siguiente <i class="ti ti-arrow-right"></i></button></div>`;
     if (matState.area) document.getElementById('m-area').value = matState.area;
@@ -1151,6 +1190,7 @@ function renderPanelMat(step) {
       <div class="summary-card">
         <div class="summary-row"><span class="summary-label">Materia</span><span class="summary-value">${matState.nombre||'—'}</span></div>
         <div class="summary-row"><span class="summary-label">Área</span><span class="summary-value">${matState.area||'Sin área'}</span></div>
+        <div class="summary-row"><span class="summary-label">Tipo</span><span class="summary-value">${matState.compartida ? 'Compartida' : 'No compartida'}</span></div>
         <div class="summary-row"><span class="summary-label">Carga horaria</span><span class="summary-value" style="font-size:12px">${carga}</span></div>
       </div>
       <div class="btn-row">
@@ -1164,8 +1204,9 @@ function renderPanelMat(step) {
 }
 
 function avanzarMat2() {
-  matState.nombre = document.getElementById('m-nombre')?.value.trim() || '';
-  matState.area   = document.getElementById('m-area')?.value || '';
+  matState.nombre     = document.getElementById('m-nombre')?.value.trim() || '';
+  matState.area       = document.getElementById('m-area')?.value || '';
+  // compartida ya está en matState desde setCompartidaWiz (o false por default)
   if (!matState.nombre) { showToast('Ingresá el nombre de la materia', 'err'); return; }
   renderPanelMat(2);
 }
@@ -1174,7 +1215,7 @@ function setBloquesAñoWiz(a, val) { matState.carga[a].bloques = parseInt(val) |
 
 async function guardarMateriaNueva() {
   try {
-    const mat = await apiPost('crear','materias',{ nombre: matState.nombre, area: matState.area, activa: true, compartida: false });
+    const mat = await apiPost('crear','materias',{ nombre: matState.nombre, area: matState.area, activa: true, compartida: matState.compartida || false });
     for (const a of AÑOS) {
       if (matState.carga[a].activo && matState.carga[a].bloques > 0)
         await apiPost('crear','carga_horaria',{ id_materia: mat.id, año: a, bloques_semanales: matState.carga[a].bloques, duracion_override_min:'' });
@@ -1209,7 +1250,7 @@ async function abrirFichaMat(id) {
       }
     });
 
-    fichaMatState = { id: mat.id, nombre: mat.nombre||'', area: mat.area||'', activa, cargaEdit };
+    fichaMatState = { id: mat.id, nombre: mat.nombre||'', area: mat.area||'', activa, compartida: isTruthy(mat.compartida), cargaEdit };
 
     cont.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem">
@@ -1233,6 +1274,18 @@ async function abrirFichaMat(id) {
               <option>Lengua y Literatura</option><option>Lenguas Extranjeras</option><option>Educación Física</option>
               <option>Arte</option><option>Formación Ética</option><option>Tecnología</option>
             </select>
+          </div>
+          <div class="field">
+            <label>Tipo de materia</label>
+            <div style="display:flex;gap:8px;margin-top:4px">
+              <button id="fi-btn-no-comp" class="chip ${fichaMatState.compartida ? '' : 'selected'}" onclick="setCompartidaFicha(false)">No compartida</button>
+              <button id="fi-btn-si-comp" class="chip ${fichaMatState.compartida ? 'selected' : ''}" onclick="setCompartidaFicha(true)">Compartida</button>
+            </div>
+            <p style="font-size:12px;color:var(--color-text-faint);margin-top:6px" id="fi-comp-hint">
+              ${fichaMatState.compartida
+                ? 'Varios profesores dictan esta materia en simultáneo a grupos distintos.'
+                : 'Un único profesor dicta esta materia por curso.'}
+            </p>
           </div>
         </div>
 
@@ -1294,7 +1347,8 @@ function guardarFichaMat() {
       // 1. Actualizar datos básicos de la materia
       await apiPost('editar','materias', {
         nombre: document.getElementById('fi-mat-nombre')?.value.trim() || fichaMatState.nombre,
-        area:   document.getElementById('fi-mat-area')?.value          || '',
+        area:       document.getElementById('fi-mat-area')?.value || '',
+        compartida: fichaMatState.compartida || false,
       }, fichaMatState.id);
 
       // 2. Sincronizar carga horaria año por año
@@ -1323,6 +1377,15 @@ function guardarFichaMat() {
       volverListadoMat();
     } catch(e) { showToast('Error: ' + e.message, 'err'); }
   });
+}
+
+function setCompartidaFicha(val) {
+  fichaMatState.compartida = val;
+  document.getElementById('fi-btn-no-comp').classList.toggle('selected', !val);
+  document.getElementById('fi-btn-si-comp').classList.toggle('selected',  val);
+  document.getElementById('fi-comp-hint').textContent = val
+    ? 'Varios profesores dictan esta materia en simultáneo a grupos distintos.'
+    : 'Un único profesor dicta esta materia por curso.';
 }
 
 function confirmarBajaMat() {
@@ -1410,7 +1473,7 @@ async function abrirFichaCur(id) {
       apiGet('leer','CURSOS'),
       apiGet('leer','ESTRUCTURA_HORARIA').catch(()=>[])
     ]);
-    const c = cursos.find(x => x.id === id);
+    const c = cursos.find(x => String(x.id) === String(id));
     if (!c) throw new Error('Curso no encontrado');
     const activo = isTruthy(c.activo);
 
