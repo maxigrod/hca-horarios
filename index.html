@@ -2346,7 +2346,7 @@ async function guardarBloquesEstr() {
       const hora_fin    = inputs[1]?.value.trim() || '';
       const duracion    = inputs[2]?.value || '';
       // numero: secuencial solo para académicos; para recreos/almuerzos usamos null
-      // posicion: orden global de la fila (para reordenar al mostrar)
+      // numero: secuencial solo para académicos; para recreos/almuerzos usamos null
       const numero = tipo === 'academico' ? numAcademico++ : null;
 
       if (esNuevo) {
@@ -2363,7 +2363,6 @@ async function guardarBloquesEstr() {
           numero,
         }, id);
       }
-      posicion++;
     }
 
     delete _cache['BLOQUES'];
