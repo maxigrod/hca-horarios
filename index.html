@@ -504,17 +504,20 @@ const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes'];
 let _bloquesCache = null;
 
 function _parsearHora(val) {
-  // Sheets devuelve las horas como objetos Date serializados en ISO (ej: "1899-12-30T11:15:00.000Z")
-  // También puede venir como string "HH:MM" si se guardó como texto — manejamos ambos casos.
+  // Sheets serializa las horas como Date ISO: "1899-12-30T11:15:00.000Z"
+  // El HH:MM del string ISO es la hora exacta almacenada en Sheets — NO hay que convertir timezone.
+  // Sheets usa 1899-12-30 como fecha base para valores de tipo Time puro.
   if (!val) return '';
   const s = String(val);
   if (s.includes('T')) {
-    // Formato ISO: extraer HH:MM sumando el offset UTC para que quede en hora local del string
-    // 1899-12-30T08:15:00.000Z → 8:15
     const match = s.match(/T(\d{2}):(\d{2})/);
-    if (match) return `${parseInt(match[1])}:${match[2]}`;
+    if (match) {
+      const h = parseInt(match[1]);
+      const m = match[2];
+      return `${h}:${m}`;
+    }
   }
-  return s; // ya es "HH:MM"
+  return s; // ya viene como "8:15"
 }
 
 async function getBloques() {
@@ -848,7 +851,10 @@ async function abrirFichaProf(id) {
   const cont = document.getElementById('prof-ficha');
   cont.innerHTML = '<div class="loading" style="padding:2rem"><div class="spinner"></div> Cargando ficha...</div>';
   try {
-    const [profs, mats, bl] = await Promise.all([apiGet('leer','PROFESORES'), apiGet('leer','MATERIAS'), getBloques()]);
+    const [profs, mats, bl, asigs, cursos] = await Promise.all([
+      apiGet('leer','PROFESORES'), apiGet('leer','MATERIAS'), getBloques(),
+      apiGet('leer','ASIGNACIONES'), apiGet('leer','CURSOS')
+    ]);
     const prof = profs.find(p => String(p.id) === String(id));
     if (!prof) throw new Error('Profesor no encontrado');
 
@@ -857,12 +863,20 @@ async function abrirFichaProf(id) {
     const activo = isTruthy(prof.activo);
     const ini    = ((prof.apellido||'')[0]||'') + ((prof.nombre||'')[0]||'');
 
+    // Asignaciones actuales de este profesor
+    const asigProf = asigs.filter(a => String(a.id_profesor) === String(prof.id) && a.estado !== 'archivado');
+
     fichaState = {
       id: prof.id, apellido: prof.apellido||'', nombre: prof.nombre||'', email: prof.email||'',
       horas_contrato: prof.horas_contrato||'', unidad_contrato: prof.unidad_contrato||'horas_reloj',
       materias: Array.isArray(mProf) ? [...mProf] : [],
       disponibilidad: JSON.parse(JSON.stringify(dProf)),
       activo,
+      asignaciones: asigProf,
+      _asigAgregadas: [],   // {id_materia, id_curso} — pendientes de crear
+      _asigQuitadas:  [],   // ids de ASIGNACIONES a eliminar
+      _mats: mats,
+      _cursos: cursos,
     };
 
     const nombresMats = mats.filter(m => isTruthy(m.activa)).map(m => m.nombre);
@@ -909,8 +923,34 @@ async function abrirFichaProf(id) {
         </div>
 
         <div class="ficha-section">
-          <div class="ficha-section-title">Materias que dicta</div>
+          <div class="ficha-section-title">Materias habilitadas</div>
           <div class="materias-chips">${nombresMats.map(m => `<div class="chip ${fichaState.materias.includes(m)?'selected':''}" onclick="toggleMateriaFicha(this,'${m}')">${m}</div>`).join('')}</div>
+          <p style="font-size:12px;color:var(--color-text-faint);margin-top:8px">Seleccioná las materias que este profesor está habilitado para dictar.</p>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Asignaciones (materia × curso)</div>
+          <p style="font-size:12px;color:var(--color-text-muted);margin-bottom:12px">Define en qué cursos dicta cada materia. El motor CSP usará esto para armar el horario.</p>
+          <div id="asig-tabla" style="margin-bottom:14px"></div>
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+            <div class="field" style="margin-bottom:0;min-width:180px">
+              <label>Materia</label>
+              <select id="asig-mat-sel" onchange="onAsigMatCambio()">
+                <option value="">— elegí una materia —</option>
+                ${fichaState.materias.map(m => {
+                  const matObj = mats.find(x => x.nombre === m);
+                  return `<option value="${matObj?.id||''}" data-nombre="${m}">${m}</option>`;
+                }).join('')}
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0;min-width:150px">
+              <label>Curso</label>
+              <select id="asig-cur-sel" disabled>
+                <option value="">— elegí una materia primero —</option>
+              </select>
+            </div>
+            <button onclick="agregarAsignacionProf()" style="flex-shrink:0"><i class="ti ti-plus"></i> Agregar</button>
+          </div>
         </div>
 
         <div class="ficha-section">
@@ -928,12 +968,106 @@ async function abrirFichaProf(id) {
           <button class="primary" onclick="guardarFichaProf()"><i class="ti ti-check"></i> Guardar cambios</button>
         </div>
       </div>`;
+    renderAsignacionesProf();
   } catch(e) { cont.innerHTML = `<p style="color:var(--color-red-text);padding:1rem">Error: ${e.message}</p>`; }
 }
 
 function toggleMateriaFicha(el, nombre) {
   if (fichaState.materias.includes(nombre)) { fichaState.materias = fichaState.materias.filter(m => m !== nombre); el.classList.remove('selected'); }
   else { fichaState.materias.push(nombre); el.classList.add('selected'); }
+}
+
+// ============================================================
+// PROFESORES — ASIGNACIONES (materia × curso)
+// ============================================================
+function renderAsignacionesProf() {
+  const cont = document.getElementById('asig-tabla');
+  if (!cont) return;
+  const asigs = fichaState.asignaciones || [];
+  if (!asigs.length) {
+    cont.innerHTML = '<p style="font-size:13px;color:var(--color-text-faint)">Sin asignaciones cargadas todavía.</p>';
+    return;
+  }
+  const rows = asigs.map(a => {
+    const mat = fichaState._mats?.find(m => String(m.id) === String(a.id_materia));
+    const cur = fichaState._cursos?.find(c => String(c.id) === String(a.id_curso));
+    const matLabel = mat ? mat.nombre : `Materia #${a.id_materia}`;
+    const curLabel = cur ? `${cur.año}° ${cur.division}${cur.nombre_personalizado?' — '+cur.nombre_personalizado:''}` : `Curso #${a.id_curso}`;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:var(--radius);border:0.5px solid var(--color-border);margin-bottom:6px;font-size:13px">
+      <span><span style="font-weight:500">${matLabel}</span> <span style="color:var(--color-text-muted)">→</span> <span>${curLabel}</span></span>
+      <button onclick="quitarAsignacionProf('${a.id}')" style="padding:3px 8px;font-size:11px;color:var(--color-red-text);border-color:#e8a0a0"><i class="ti ti-x"></i> Quitar</button>
+    </div>`;
+  }).join('');
+  cont.innerHTML = rows;
+}
+
+function onAsigMatCambio() {
+  const sel    = document.getElementById('asig-mat-sel');
+  const curSel = document.getElementById('asig-cur-sel');
+  const idMat  = sel.value;
+  if (!idMat) { curSel.innerHTML = '<option value="">— elegí una materia primero —</option>'; curSel.disabled = true; return; }
+
+  // Cursos activos, excluyendo los que ya tienen asignación para esta materia y este profesor
+  const yaAsignados = (fichaState.asignaciones || [])
+    .filter(a => String(a.id_materia) === String(idMat))
+    .map(a => String(a.id_curso));
+
+  const cursosDisp = (fichaState._cursos || [])
+    .filter(c => isTruthy(c.activo) && !yaAsignados.includes(String(c.id)))
+    .sort((a,b) => Number(a.año) - Number(b.año) || a.division.localeCompare(b.division));
+
+  if (!cursosDisp.length) {
+    curSel.innerHTML = '<option value="">Sin cursos disponibles</option>';
+    curSel.disabled = true;
+    return;
+  }
+  curSel.innerHTML = '<option value="">— elegí un curso —</option>' +
+    cursosDisp.map(c => `<option value="${c.id}">${c.año}° ${c.division}${c.nombre_personalizado?' — '+c.nombre_personalizado:''}</option>`).join('');
+  curSel.disabled = false;
+}
+
+async function agregarAsignacionProf() {
+  const idMat = document.getElementById('asig-mat-sel')?.value;
+  const idCur = document.getElementById('asig-cur-sel')?.value;
+  if (!idMat) { showToast('Elegí una materia', 'err'); return; }
+  if (!idCur) { showToast('Elegí un curso', 'err'); return; }
+
+  const dup = (fichaState.asignaciones || []).find(a =>
+    String(a.id_materia) === String(idMat) && String(a.id_curso) === String(idCur)
+  );
+  if (dup) { showToast('Esa asignación ya existe', 'err'); return; }
+
+  // Solo en memoria — se guarda al hacer "Guardar cambios"
+  const tempId = 'new_' + Date.now();
+  fichaState.asignaciones.push({ id: tempId, id_profesor: fichaState.id, id_materia: idMat, id_curso: idCur, estado: 'borrador' });
+  fichaState._asigAgregadas.push({ id_materia: idMat, id_curso: idCur });
+
+  renderAsignacionesProf();
+  document.getElementById('asig-mat-sel').value = '';
+  document.getElementById('asig-cur-sel').innerHTML = '<option value="">— elegí una materia primero —</option>';
+  document.getElementById('asig-cur-sel').disabled = true;
+}
+
+async function quitarAsignacionProf(idAsig) {
+  const asig = fichaState.asignaciones.find(a => String(a.id) === String(idAsig));
+  if (!asig) return;
+  const mat = fichaState._mats?.find(m => String(m.id) === String(asig.id_materia));
+  const cur = fichaState._cursos?.find(c => String(c.id) === String(asig.id_curso));
+  const label = `${mat?.nombre||'?'} → ${cur ? cur.año+'° '+cur.division : '?'}`;
+
+  confirmar('¿Quitar asignación?', label, async () => {
+    // Si era una agregada en esta sesión, solo la sacamos de _asigAgregadas
+    if (String(idAsig).startsWith('new_')) {
+      fichaState._asigAgregadas = fichaState._asigAgregadas.filter(a =>
+        !(String(a.id_materia) === String(asig.id_materia) && String(a.id_curso) === String(asig.id_curso))
+      );
+    } else {
+      // Era una asignación existente — marcarla para eliminar al guardar
+      fichaState._asigQuitadas.push(idAsig);
+    }
+    fichaState.asignaciones = fichaState.asignaciones.filter(a => String(a.id) !== String(idAsig));
+    renderAsignacionesProf();
+  });
 }
 function toggleDispFicha(dia, num) {
   if (!fichaState.disponibilidad[dia]) fichaState.disponibilidad[dia] = {};
@@ -954,6 +1088,7 @@ async function setAllDispFicha(val) {
 function guardarFichaProf() {
   confirmar('¿Confirmamos los cambios?', `Se actualizarán los datos de ${document.getElementById('fi-apellido')?.value || fichaState.apellido}.`, async () => {
     try {
+      // 1. Guardar datos básicos del profesor
       await apiPost('editar','profesores', {
         apellido:        document.getElementById('fi-apellido')?.value.trim() || fichaState.apellido,
         nombre:          document.getElementById('fi-nombre')?.value.trim()   || fichaState.nombre,
@@ -963,7 +1098,24 @@ function guardarFichaProf() {
         materias:        JSON.stringify(fichaState.materias),
         disponibilidad:  JSON.stringify(fichaState.disponibilidad),
       }, fichaState.id);
+
+      // 2. Eliminar asignaciones quitadas
+      for (const idAsig of fichaState._asigQuitadas) {
+        await apiPost('eliminar','asignaciones', {}, idAsig);
+      }
+
+      // 3. Crear asignaciones nuevas
+      for (const a of fichaState._asigAgregadas) {
+        await apiPost('crear','asignaciones', {
+          id_profesor: fichaState.id,
+          id_materia:  a.id_materia,
+          id_curso:    a.id_curso,
+          estado:      'borrador',
+        });
+      }
+
       delete _cache['PROFESORES'];
+      delete _cache['ASIGNACIONES'];
       showToast('Cambios guardados');
       volverListadoProf();
     } catch(e) { showToast('Error: ' + e.message, 'err'); }
