@@ -2243,7 +2243,12 @@ function abrirEstructura(idEstr) {
 
 function _renderBloquesPanelEstr(estr, bloques) {
   const panel = document.getElementById('estr-bloques-panel');
-  const rows = bloques.map((b, i) => _renderBloqueRow(b, i)).join('');
+  // Calcular el número ordinal de cada bloque académico según su posición en la lista actual
+  let acadCount = 0;
+  const rows = bloques.map((b) => {
+    const nroDisplay = b.tipo === 'academico' ? ++acadCount : null;
+    return _renderBloqueRow(b, nroDisplay);
+  }).join('');
 
   panel.innerHTML = `
     <div class="card" style="padding:0;overflow:hidden;margin-top:1rem">
@@ -2273,10 +2278,10 @@ function _renderBloquesPanelEstr(estr, bloques) {
   _initDragDrop();
 }
 
-function _renderBloqueRow(b, i) {
+function _renderBloqueRow(b, nroDisplay) {
   const id     = b.id || b._tempId;
   const tipo   = b.tipo || 'academico';
-  const numero = tipo === 'academico' ? (b.numero || '') : '—';
+  const numero = tipo === 'academico' ? (nroDisplay ?? '') : '—';
 
   return `<tr draggable="true" data-id="${id}">
     <td><span class="drag-handle"><i class="ti ti-grip-vertical"></i></span></td>
@@ -2314,10 +2319,13 @@ function agregarBloqueEstr() {
   _estrState.bloquesNuevos.push(nuevo);
   _estrState._bloquesOrden.push(tempId);
   const tbody = document.getElementById('bloques-tbody');
+  // Contar cuántos bloques académicos ya hay para asignar el número siguiente
+  const nroNuevo = [...tbody.querySelectorAll('tr[data-id] select')]
+    .filter(s => s.value === 'academico').length + 1;
   const tr = document.createElement('tr');
   tr.setAttribute('draggable','true');
   tr.setAttribute('data-id', tempId);
-  tr.innerHTML = _renderBloqueRow(nuevo, tbody.children.length).replace(/^<tr[^>]*>/,'').replace(/<\/tr>$/,'');
+  tr.innerHTML = _renderBloqueRow(nuevo, nroNuevo).replace(/^<tr[^>]*>/,'').replace(/<\/tr>$/,'');
   tbody.appendChild(tr);
   _initDragDrop();
 }
