@@ -1348,6 +1348,17 @@ function setCompartidaWiz(val) {
   document.getElementById('comp-hint').textContent = val
     ? 'Varios profesores dictan esta materia en simultáneo a grupos distintos (ej: Arte, Ed. Física).'
     : 'Un único profesor dicta esta materia por curso.';
+
+  // Actualizar nombre automáticamente
+  const inputNombre = document.getElementById('m-nombre');
+  if (!inputNombre) return;
+  const SUFIJO = ' compartida';
+  let nombre = inputNombre.value.trim();
+  if (val && !nombre.endsWith(SUFIJO)) {
+    inputNombre.value = nombre + SUFIJO;
+  } else if (!val && nombre.endsWith(SUFIJO)) {
+    inputNombre.value = nombre.slice(0, -SUFIJO.length);
+  }
 }
 async function initWizardMat() { resetMatState(); renderStepsMat(); renderPanelMat(1); }
 
@@ -1435,11 +1446,45 @@ function renderPanelMat(step) {
   }
 }
 
-function avanzarMat2() {
-  matState.nombre     = document.getElementById('m-nombre')?.value.trim() || '';
-  matState.area       = document.getElementById('m-area')?.value || '';
+async function avanzarMat2() {
+  matState.nombre = document.getElementById('m-nombre')?.value.trim() || '';
+  matState.area   = document.getElementById('m-area')?.value || '';
   // compartida ya está en matState desde setCompartidaWiz (o false por default)
   if (!matState.nombre) { showToast('Ingresá el nombre de la materia', 'err'); return; }
+
+  // Verificar duplicados por nombre (case-insensitive)
+  try {
+    const mats = await apiGet('leer', 'MATERIAS');
+    const nombreLower = matState.nombre.toLowerCase();
+    const existente = mats.find(m => (m.nombre || '').toLowerCase() === nombreLower);
+
+    if (existente) {
+      if (isTruthy(existente.activa)) {
+        showToast(`Ya existe una materia activa con el nombre "${existente.nombre}".`, 'err');
+        return;
+      } else {
+        // Existe pero está inactiva — ofrecer reactivar
+        confirmar(
+          `"${existente.nombre}" ya existe pero está inactiva`,
+          '¿Querés reactivarla en lugar de crear una nueva?',
+          async () => {
+            try {
+              await apiPost('editar', 'materias', { activa: true }, existente.id);
+              delete _cache['MATERIAS'];
+              showToast(`"${existente.nombre}" reactivada`);
+              mostrarModoMat('listado');
+              renderListadoMat();
+            } catch(e) { showToast('Error: ' + e.message, 'err'); }
+          }
+        );
+        return;
+      }
+    }
+  } catch(e) {
+    // Si falla la consulta, dejamos pasar — no bloqueamos el alta por un error de red
+    console.warn('No se pudo verificar duplicados:', e.message);
+  }
+
   renderPanelMat(2);
 }
 function toggleAñoWiz(a) { matState.carga[a].activo = !matState.carga[a].activo; renderPanelMat(2); }
@@ -1504,7 +1549,6 @@ async function abrirFichaMat(id) {
       docentesEliminados: [],
       _profesores: profs.filter(p => isTruthy(p.activo)),
       _asigMat: asigMat,
-      _todasAsig: asignaciones,
       _cursos: cursos,
     };
 
@@ -1635,15 +1679,6 @@ function renderAsigMat() {
   const asig    = fichaMatState._asigMat || [];
   const profs   = fichaMatState._profesores || [];
   const cursos  = fichaMatState._cursos || [];
-
-  // === DIAGNÓSTICO TEMPORAL — borrar después ===
-  console.log('=== renderAsigMat ===');
-  console.log('id_materia buscado:', fichaMatState.id, '(tipo:', typeof fichaMatState.id, ')');
-  console.log('asignaciones de esta materia (filtradas):', asig);
-  console.log('TODAS las asignaciones sin filtrar:', fichaMatState._todasAsig?.map(a =>
-    `id=${a.id} | id_materia=${a.id_materia}(${typeof a.id_materia}) | id_prof=${a.id_profesor} | estado=${a.estado}`
-  ));
-  // =============================================
 
   if (asig.length === 0) {
     cont.innerHTML = `<p style="font-size:12px;color:var(--color-text-faint);padding:4px 0">
@@ -1816,9 +1851,20 @@ function setCompartidaFicha(val) {
   fichaMatState.compartida = val;
   document.getElementById('fi-btn-no-comp').classList.toggle('selected', !val);
   document.getElementById('fi-btn-si-comp').classList.toggle('selected',  val);
-  document.getElementById('fi-comp-hint').textContent = val
+
+  const SUFIJO = ' compartida';
+  const nombreActual = document.getElementById('fi-mat-nombre')?.value.trim() || '';
+  const necesitaSufijo  = val  && !nombreActual.endsWith(SUFIJO);
+  const sobranSufijo    = !val && nombreActual.endsWith(SUFIJO);
+  const aviso = necesitaSufijo
+    ? 'Varios profesores dictan esta materia en simultáneo. Recordá agregar " compartida" al nombre si corresponde.'
+    : sobranSufijo
+    ? 'Un único profesor dicta esta materia por curso. Recordá quitar " compartida" del nombre si corresponde.'
+    : val
     ? 'Varios profesores dictan esta materia en simultáneo a grupos distintos.'
     : 'Un único profesor dicta esta materia por curso.';
+
+  document.getElementById('fi-comp-hint').textContent = aviso;
   const seccion = document.getElementById('fi-docentes-section');
   if (seccion) seccion.style.display = val ? 'block' : 'none';
 }
