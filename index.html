@@ -2230,10 +2230,10 @@ function abrirEstructura(idEstr) {
   const estr   = _estrState.estructuras.find(e => String(e.id) === String(idEstr));
   const bloques = _estrState.bloques
     .filter(b => String(b.id_estructura) === String(idEstr))
-    .sort((a,b) => {
-      // Ordenar: primero por hora_inicio como string HH:MM
-      const ta = a.hora_inicio || ''; const tb = b.hora_inicio || '';
-      return ta.localeCompare(tb);
+    .sort((a, b) => {
+      // Ordenar por hora_inicio: convertir "H:MM" a minutos para comparar correctamente
+      const toMin = h => { if (!h) return 9999; const [hh,mm] = String(h).split(':'); return Number(hh)*60 + Number(mm||0); };
+      return toMin(a.hora_inicio) - toMin(b.hora_inicio);
     });
 
   _estrState._bloquesOrden = bloques.map(b => String(b.id)); // orden drag
@@ -2345,7 +2345,9 @@ async function guardarBloquesEstr() {
       const hora_inicio = inputs[0]?.value.trim() || '';
       const hora_fin    = inputs[1]?.value.trim() || '';
       const duracion    = inputs[2]?.value || '';
-      const numero      = tipo === 'academico' ? numAcademico++ : null;
+      // numero: secuencial solo para académicos; para recreos/almuerzos usamos null
+      // posicion: orden global de la fila (para reordenar al mostrar)
+      const numero = tipo === 'academico' ? numAcademico++ : null;
 
       if (esNuevo) {
         await apiPost('crear','bloques', {
@@ -2361,13 +2363,13 @@ async function guardarBloquesEstr() {
           numero,
         }, id);
       }
+      posicion++;
     }
 
     delete _cache['BLOQUES'];
     _bloquesCache = null;
     showToast('Estructura guardada');
 
-    // Recargar estado
     const bloques = await apiGet('leer','BLOQUES');
     _estrState.bloques           = bloques;
     _estrState.bloquesEditados   = {};
