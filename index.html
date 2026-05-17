@@ -2274,31 +2274,25 @@ function _renderBloquesPanelEstr(estr, bloques) {
 }
 
 function _renderBloqueRow(b, i) {
-  const id      = b.id || b._tempId;
-  const tipo    = b.tipo || 'academico';
-  const tipoClass = { academico:'tipo-badge-academico', recreo:'tipo-badge-recreo', almuerzo:'tipo-badge-almuerzo' }[tipo] || '';
-  const numero  = b.tipo === 'academico' ? (b.numero || '') : '—';
+  const id     = b.id || b._tempId;
+  const tipo   = b.tipo || 'academico';
+  const numero = tipo === 'academico' ? (b.numero || '') : '—';
 
-  return `<tr draggable="true" data-id="${id}" data-idx="${i}">
+  return `<tr draggable="true" data-id="${id}">
     <td><span class="drag-handle"><i class="ti ti-grip-vertical"></i></span></td>
-    <td style="color:var(--color-text-muted);font-size:12px;text-align:center">${numero}</td>
+    <td style="color:var(--color-text-muted);font-size:12px;text-align:center;width:32px">${numero}</td>
     <td>
-      <select onchange="editarBloque('${id}','tipo',this.value);this.closest('tr').querySelector('td:nth-child(2)').textContent=this.value==='academico'?(document.querySelectorAll('tr[draggable] select').length):'—'" style="width:110px">
+      <select style="width:110px">
         <option value="academico" ${tipo==='academico'?'selected':''}>Académico</option>
         <option value="recreo"    ${tipo==='recreo'   ?'selected':''}>Recreo</option>
         <option value="almuerzo"  ${tipo==='almuerzo' ?'selected':''}>Almuerzo</option>
       </select>
     </td>
-    <td><input type="text" value="${b.hora_inicio||''}" placeholder="8:15" style="width:70px" onchange="editarBloque('${id}','hora_inicio',this.value)" /></td>
-    <td><input type="text" value="${b.hora_fin||''}"   placeholder="8:55" style="width:70px" onchange="editarBloque('${id}','hora_fin',this.value)"   /></td>
-    <td><input type="number" value="${b.duracion_min||''}" min="1" max="180" style="width:70px;text-align:center" onchange="editarBloque('${id}','duracion_min',this.value)" /></td>
+    <td><input type="text"   value="${b.hora_inicio||''}" placeholder="8:15" style="width:70px" /></td>
+    <td><input type="text"   value="${b.hora_fin||''}"    placeholder="8:55" style="width:70px" /></td>
+    <td><input type="number" value="${b.duracion_min||''}" min="1" max="180"  style="width:70px;text-align:center" /></td>
     <td><button onclick="eliminarBloqueEstr('${id}')" style="padding:3px 7px;font-size:12px;color:var(--color-red-text)"><i class="ti ti-trash"></i></button></td>
   </tr>`;
-}
-
-function editarBloque(id, campo, valor) {
-  if (!_estrState.bloquesEditados[id]) _estrState.bloquesEditados[id] = {};
-  _estrState.bloquesEditados[id][campo] = valor;
 }
 
 function eliminarBloqueEstr(id) {
@@ -2334,54 +2328,54 @@ async function guardarBloquesEstr() {
   try {
     // 1. Eliminar los marcados para borrar
     for (const id of _estrState.bloquesEliminados) {
-      await apiPost('eliminar','bloques',{}, id);
+      await apiPost('eliminar','bloques', {}, id);
     }
-    // 2. Crear los nuevos
-    for (const b of _estrState.bloquesNuevos) {
-      // Leer valores actuales del DOM (pueden haber sido editados inline)
-      const edits = _estrState.bloquesEditados[b._tempId] || {};
-      await apiPost('crear','bloques',{
-        id_estructura: idEstr,
-        tipo:          edits.tipo         || b.tipo         || 'academico',
-        hora_inicio:   edits.hora_inicio  || b.hora_inicio  || '',
-        hora_fin:      edits.hora_fin     || b.hora_fin      || '',
-        duracion_min:  edits.duracion_min || b.duracion_min || '',
-        numero:        edits.numero       || b.numero       || '',
-      });
+
+    // 2. Leer TODOS los valores actuales del DOM fila por fila
+    const filas = [...document.querySelectorAll('#bloques-tbody tr[data-id]')];
+    let numAcademico = 1;
+
+    for (const fila of filas) {
+      const id      = fila.getAttribute('data-id');
+      const esNuevo = String(id).startsWith('new_');
+      const inputs  = fila.querySelectorAll('input');
+      const sel     = fila.querySelector('select');
+
+      const tipo        = sel?.value || 'academico';
+      const hora_inicio = inputs[0]?.value.trim() || '';
+      const hora_fin    = inputs[1]?.value.trim() || '';
+      const duracion    = inputs[2]?.value || '';
+      const numero      = tipo === 'academico' ? numAcademico++ : null;
+
+      if (esNuevo) {
+        await apiPost('crear','bloques', {
+          id_estructura: idEstr,
+          tipo, hora_inicio, hora_fin,
+          duracion_min: duracion,
+          numero,
+        });
+      } else {
+        await apiPost('editar','bloques', {
+          tipo, hora_inicio, hora_fin,
+          duracion_min: duracion,
+          numero,
+        }, id);
+      }
     }
-    // 3. Editar los existentes modificados
-    for (const [id, cambios] of Object.entries(_estrState.bloquesEditados)) {
-      if (String(id).startsWith('new_')) continue; // ya creados arriba
-      await apiPost('editar','bloques', cambios, id);
-    }
-    // 4. Renumerar bloques académicos según orden drag
-    await _renumerarBloques(idEstr);
 
     delete _cache['BLOQUES'];
-    _bloquesCache = null; // forzar recarga de bloques en disponibilidad
+    _bloquesCache = null;
     showToast('Estructura guardada');
-    // Recargar
+
+    // Recargar estado
     const bloques = await apiGet('leer','BLOQUES');
-    _estrState.bloques = bloques;
-    _estrState.bloquesEditados  = {};
-    _estrState.bloquesNuevos    = [];
+    _estrState.bloques           = bloques;
+    _estrState.bloquesEditados   = {};
+    _estrState.bloquesNuevos     = [];
     _estrState.bloquesEliminados = [];
     abrirEstructura(idEstr);
-  } catch(e) { showToast('Error: ' + e.message, 'err'); }
-}
 
-async function _renumerarBloques(idEstr) {
-  // Asigna número secuencial a los bloques académicos según el orden actual del DOM
-  const filas = [...document.querySelectorAll('#bloques-tbody tr[data-id]')];
-  let num = 1;
-  for (const fila of filas) {
-    const id   = fila.getAttribute('data-id');
-    const tipo = fila.querySelector('select')?.value || 'academico';
-    if (tipo === 'academico' && !String(id).startsWith('new_')) {
-      await apiPost('editar','bloques',{ numero: num }, id);
-      num++;
-    }
-  }
+  } catch(e) { showToast('Error: ' + e.message, 'err'); }
 }
 
 // ---- nueva estructura ----
