@@ -186,7 +186,8 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
 .h-table td { padding: 3px 4px; border: 0.5px solid var(--color-border); vertical-align: top; height: 44px; }
 .h-table td.bloque-header { font-size: 11px; color: var(--color-text-faint); padding: 4px 6px; background: var(--color-bg); white-space: nowrap; }
 
-/* TOAST */
+.cur-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-color: var(--color-blue-border); }
+
 .toast { position: fixed; bottom: 20px; right: 20px; background: var(--color-surface); border: 0.5px solid var(--color-border-strong); border-radius: var(--radius); padding: 10px 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
 .toast.show { opacity: 1; }
 
@@ -348,9 +349,18 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
 
     <!-- CURSOS -->
     <div class="section" id="section-cursos">
-      <p class="page-title">Cursos</p>
-      <p class="page-sub">18 cursos precargados. Podés activar o desactivar.</p>
-      <div id="cursos-container"></div>
+      <div id="cur-listado"></div>
+      <div id="cur-wizard" style="display:none">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem">
+          <button class="btn-back" onclick="volverListadoCur()"><i class="ti ti-arrow-left"></i> Volver</button>
+          <span style="font-size:13px;color:var(--color-text-muted)">Nuevo curso</span>
+        </div>
+        <div class="wizard">
+          <div class="steps" id="steps-cur"></div>
+          <div id="panels-cur"></div>
+        </div>
+      </div>
+      <div id="cur-ficha" style="display:none"></div>
     </div>
 
     <!-- REGLAS -->
@@ -436,7 +446,7 @@ function goTo(section) {
   document.getElementById('section-' + section).classList.add('active');
   document.getElementById('nav-' + section).classList.add('active');
   if (section === 'horario')    buildHorario();
-  if (section === 'cursos')     renderCursos();
+  if (section === 'cursos')     renderListadoCur();
   if (section === 'reglas')     renderReglas();
   if (section === 'profesores') renderListadoProf();
   if (section === 'materias')   renderListadoMat();
@@ -1328,36 +1338,320 @@ function confirmarBajaMat() {
   });
 }
 // ============================================================
-// CURSOS
+// CURSOS — LISTADO (cards por año)
 // ============================================================
-async function renderCursos() {
-  const cont = document.getElementById('cursos-container');
-  cont.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando cursos...</div>';
+async function renderListadoCur() {
+  document.getElementById('cur-listado').style.display = '';
+  document.getElementById('cur-wizard').style.display  = 'none';
+  document.getElementById('cur-ficha').style.display   = 'none';
+
+  const cont = document.getElementById('cur-listado');
+  cont.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem">
+      <div>
+        <p class="page-title">Cursos</p>
+        <p class="page-sub">18 cursos precargados. Hacé clic en una card para ver el detalle.</p>
+      </div>
+      <button class="primary" onclick="abrirWizardCur()"><i class="ti ti-plus"></i> Nuevo curso</button>
+    </div>
+    <div id="cursos-cards"><div class="loading"><div class="spinner"></div> Cargando cursos...</div></div>`;
+
   try {
-    const cursos = await apiGet('leer','CURSOS');
+    const [cursos, estructuras] = await Promise.all([
+      apiGet('leer','CURSOS'),
+      apiGet('leer','ESTRUCTURA_HORARIA').catch(()=>[])
+    ]);
+    _estructurasCur = estructuras;
     const porAño = {};
     cursos.forEach(c => { if (!porAño[c.año]) porAño[c.año] = []; porAño[c.año].push(c); });
-    cont.innerHTML = ['1','2','3','4','5','6'].map(a => {
-      const lista = porAño[a] || [];
-      return `<div style="margin-bottom:1.5rem">
-        <div style="font-size:12px;font-weight:500;color:var(--color-text-muted);padding-bottom:6px;border-bottom:0.5px solid var(--color-border);margin-bottom:8px">${a}° año</div>
-        <div style="display:flex;gap:8px">${lista.map(c => {
-          const activo = isTruthy(c.activo);
-          return `<div class="card" style="flex:1;opacity:${activo?1:0.5}">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-              <span style="font-size:15px;font-weight:500">${c.año}° ${c.division}</span>
-              <button onclick="toggleCurso('${c.id}',${!activo})" style="padding:3px 8px;font-size:11px;border-radius:20px"><i class="ti ti-${activo?'eye-off':'eye'}"></i></button>
-            </div>
-            <span class="badge ${activo?'badge-admin':'badge-viewer'}">${activo?'Activo':'Inactivo'}</span>
-          </div>`;
-        }).join('')}</div>
+
+    document.getElementById('cursos-cards').innerHTML = ['1','2','3','4','5','6'].map(a => {
+      const lista = (porAño[a] || []).sort((x,y) => (x.division||'').localeCompare(y.division||''));
+      if (!lista.length) return '';
+      return `<div style="margin-bottom:1.75rem">
+        <div style="font-size:12px;font-weight:500;color:var(--color-text-muted);padding-bottom:6px;border-bottom:0.5px solid var(--color-border);margin-bottom:10px">${a}° año</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          ${lista.map(c => {
+            const activo  = isTruthy(c.activo);
+            const nombre  = c.nombre_personalizado ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px">${c.nombre_personalizado}</div>` : '';
+            const estr    = estructuras.find(e => e.id === c.id_estructura);
+            const eLabel  = estr ? estr.nombre : 'Default';
+            return `<div class="card cur-card" onclick="abrirFichaCur('${c.id}')" style="width:130px;cursor:pointer;opacity:${activo?1:0.55};transition:box-shadow 0.15s">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+                <span style="font-size:17px;font-weight:600">${c.año}° ${c.division}</span>
+                <span class="badge ${activo?'badge-admin':'badge-viewer'}" style="margin-top:2px">${activo?'✓':'-'}</span>
+              </div>
+              ${nombre}
+              <div style="font-size:11px;color:var(--color-text-faint);margin-top:8px"><i class="ti ti-clock" style="font-size:10px"></i> ${eLabel}</div>
+            </div>`;
+          }).join('')}
+        </div>
       </div>`;
     }).join('');
-  } catch(e) { cont.innerHTML = `<p style="color:var(--color-red-text)">Error: ${e.message}</p>`; }
+  } catch(e) {
+    document.getElementById('cursos-cards').innerHTML = `<p style="color:var(--color-red-text)">Error: ${e.message}</p>`;
+  }
 }
-async function toggleCurso(id, nuevoActivo) {
-  try { await apiPost('editar','cursos',{ activo: nuevoActivo }, id); delete _cache['CURSOS']; renderCursos(); }
-  catch(e) { showToast('Error: ' + e.message, 'err'); }
+
+let _estructurasCur = [];
+
+// ============================================================
+// CURSOS — FICHA
+// ============================================================
+async function abrirFichaCur(id) {
+  document.getElementById('cur-listado').style.display = 'none';
+  document.getElementById('cur-wizard').style.display  = 'none';
+  const cont = document.getElementById('cur-ficha');
+  cont.style.display = '';
+  cont.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando...</div>';
+
+  try {
+    const [cursos, estructuras] = await Promise.all([
+      apiGet('leer','CURSOS'),
+      apiGet('leer','ESTRUCTURA_HORARIA').catch(()=>[])
+    ]);
+    const c = cursos.find(x => x.id === id);
+    if (!c) throw new Error('Curso no encontrado');
+    const activo = isTruthy(c.activo);
+
+    const optsEstr = estructuras.map(e =>
+      `<option value="${e.id}" ${e.id === c.id_estructura ? 'selected' : ''}>${e.nombre}</option>`
+    ).join('');
+
+    cont.innerHTML = `
+      <div class="ficha">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem">
+          <button class="btn-back" onclick="volverListadoCur()"><i class="ti ti-arrow-left"></i> Volver</button>
+          <span style="font-size:13px;color:var(--color-text-muted)">Ficha de curso</span>
+        </div>
+
+        <div class="ficha-header">
+          <div class="ficha-avatar" style="font-size:20px;font-weight:700">${c.año}°${c.division}</div>
+          <div>
+            <div class="ficha-nombre">${c.año}° año — División ${c.division}</div>
+            <div class="ficha-email">ID: ${c.id}</div>
+          </div>
+          <span class="badge ${activo?'badge-admin':'badge-viewer'}" style="margin-left:auto">${activo?'Activo':'Inactivo'}</span>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Datos del curso</div>
+          <div class="field">
+            <label>Año</label>
+            <input type="text" value="${c.año}°" disabled style="background:var(--color-bg);color:var(--color-text-muted)" />
+          </div>
+          <div class="field">
+            <label>División</label>
+            <input type="text" value="${c.division}" disabled style="background:var(--color-bg);color:var(--color-text-muted)" />
+          </div>
+          <div class="field">
+            <label>Nombre personalizado <span style="color:var(--color-text-faint)">(opcional)</span></label>
+            <input type="text" id="fc-nombre" value="${c.nombre_personalizado||''}" placeholder="Ej: 3°B Bilingüe" />
+          </div>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Estructura horaria</div>
+          <div class="field">
+            <label>Estructura asignada</label>
+            <select id="fc-estructura">
+              <option value="">Default del sistema</option>
+              ${optsEstr}
+            </select>
+          </div>
+          <p style="font-size:12px;color:var(--color-text-faint);margin-top:-6px">Si no seleccionás ninguna, el curso usa la estructura default.</p>
+        </div>
+
+        <div class="ficha-actions">
+          <button class="${activo?'danger':''}" onclick="toggleFichaCur('${c.id}',${!activo})">
+            <i class="ti ti-${activo?'eye-off':'eye'}"></i> ${activo?'Desactivar curso':'Reactivar curso'}
+          </button>
+          <button class="primary" onclick="guardarFichaCur('${c.id}')">
+            <i class="ti ti-device-floppy"></i> Guardar cambios
+          </button>
+        </div>
+      </div>`;
+  } catch(e) {
+    cont.innerHTML = `<p style="color:var(--color-red-text)">Error: ${e.message}</p>`;
+  }
+}
+
+async function guardarFichaCur(id) {
+  const nombre    = document.getElementById('fc-nombre').value.trim();
+  const estructura = document.getElementById('fc-estructura').value;
+  confirmar('¿Guardamos los cambios?', `Curso actualizado.`, async () => {
+    try {
+      await apiPost('editar','cursos', {
+        nombre_personalizado: nombre,
+        id_estructura: estructura || null
+      }, id);
+      delete _cache['CURSOS'];
+      showToast('Curso guardado');
+      volverListadoCur();
+    } catch(e) { showToast('Error: ' + e.message, 'err'); }
+  });
+}
+
+async function toggleFichaCur(id, nuevoActivo) {
+  const accion = nuevoActivo ? 'reactivar' : 'desactivar';
+  confirmar(`¿${nuevoActivo?'Reactivar':'Desactivar'} este curso?`,
+    `El curso quedará ${nuevoActivo?'activo':'inactivo'}.`,
+    async () => {
+      try {
+        await apiPost('editar','cursos',{ activo: nuevoActivo }, id);
+        delete _cache['CURSOS'];
+        showToast(`Curso ${accion}do`);
+        volverListadoCur();
+      } catch(e) { showToast('Error: ' + e.message, 'err'); }
+    }
+  );
+}
+
+function volverListadoCur() {
+  delete _cache['CURSOS'];
+  renderListadoCur();
+}
+
+// ============================================================
+// CURSOS — WIZARD DE ALTA
+// ============================================================
+let _wizCur = { paso: 0, datos: {} };
+
+async function abrirWizardCur() {
+  document.getElementById('cur-listado').style.display = 'none';
+  document.getElementById('cur-ficha').style.display   = 'none';
+  document.getElementById('cur-wizard').style.display  = '';
+  _wizCur = { paso: 0, datos: {} };
+  renderWizCur();
+}
+
+function renderWizCur() {
+  const pasos = ['Identificación','Configuración','Confirmación'];
+  const steps = document.getElementById('steps-cur');
+  const panels = document.getElementById('panels-cur');
+
+  steps.innerHTML = pasos.map((label, i) => {
+    const cls = i < _wizCur.paso ? 'done' : i === _wizCur.paso ? 'active' : '';
+    const icon = i < _wizCur.paso ? '<i class="ti ti-check" style="font-size:13px"></i>' : (i+1);
+    return `${i>0?'<div class="step-line"></div>':''}
+      <div class="step-dot ${cls}">
+        <div class="dot-circle">${icon}</div>
+        <span class="step-label">${label}</span>
+      </div>`;
+  }).join('');
+
+  if (_wizCur.paso === 0) {
+    panels.innerHTML = `
+      <p class="panel-title">Identificación del curso</p>
+      <p class="panel-sub">Ingresá el año y la división del nuevo curso.</p>
+      <div class="field-row">
+        <div class="field">
+          <label>Año</label>
+          <select id="wc-año">
+            ${['1','2','3','4','5','6'].map(a=>`<option value="${a}" ${_wizCur.datos.año===a?'selected':''}>${a}°</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>División</label>
+          <select id="wc-div">
+            ${['A','B','C','D'].map(d=>`<option value="${d}" ${_wizCur.datos.division===d?'selected':''}>${d}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Nombre personalizado <span style="color:var(--color-text-faint)">(opcional)</span></label>
+        <input type="text" id="wc-nombre" value="${_wizCur.datos.nombre_personalizado||''}" placeholder="Ej: 4°D Técnica" />
+      </div>
+      <div class="btn-row">
+        <button onclick="volverListadoCur()">Cancelar</button>
+        <button class="primary" onclick="wizCurSig0()">Siguiente <i class="ti ti-arrow-right"></i></button>
+      </div>`;
+  } else if (_wizCur.paso === 1) {
+    apiGet('leer','ESTRUCTURA_HORARIA').catch(()=>[]).then(estructuras => {
+      const opts = estructuras.map(e =>
+        `<option value="${e.id}" ${_wizCur.datos.id_estructura===e.id?'selected':''}>${e.nombre}</option>`
+      ).join('');
+      document.getElementById('wc-estructura-wrap').innerHTML = `
+        <select id="wc-estructura">
+          <option value="">Default del sistema</option>
+          ${opts}
+        </select>`;
+    });
+    panels.innerHTML = `
+      <p class="panel-title">Configuración</p>
+      <p class="panel-sub">Definí la estructura horaria. En la mayoría de los casos podés dejar la default.</p>
+      <div class="field">
+        <label>Estructura horaria</label>
+        <div id="wc-estructura-wrap"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+      <div class="btn-row">
+        <button onclick="wizCurAtras()"><i class="ti ti-arrow-left"></i> Atrás</button>
+        <button class="primary" onclick="wizCurSig1()">Siguiente <i class="ti ti-arrow-right"></i></button>
+      </div>`;
+  } else if (_wizCur.paso === 2) {
+    const d = _wizCur.datos;
+    panels.innerHTML = `
+      <p class="panel-title">Confirmación</p>
+      <p class="panel-sub">Revisá los datos antes de guardar.</p>
+      <div class="summary-card">
+        <div class="summary-row"><span class="summary-label">Año</span><span class="summary-value">${d.año}°</span></div>
+        <div class="summary-row"><span class="summary-label">División</span><span class="summary-value">${d.division}</span></div>
+        <div class="summary-row"><span class="summary-label">Nombre personalizado</span><span class="summary-value">${d.nombre_personalizado||'—'}</span></div>
+        <div class="summary-row"><span class="summary-label">Estructura horaria</span><span class="summary-value">${d._estrLabel||'Default'}</span></div>
+      </div>
+      <div class="btn-row">
+        <button onclick="wizCurAtras()"><i class="ti ti-arrow-left"></i> Atrás</button>
+        <button class="primary" onclick="wizCurGuardar()"><i class="ti ti-device-floppy"></i> Guardar curso</button>
+      </div>`;
+  }
+}
+
+function wizCurSig0() {
+  const año    = document.getElementById('wc-año').value;
+  const div    = document.getElementById('wc-div').value;
+  const nombre = document.getElementById('wc-nombre').value.trim();
+  if (!año || !div) { showToast('Completá año y división','err'); return; }
+  _wizCur.datos.año = año;
+  _wizCur.datos.division = div;
+  _wizCur.datos.nombre_personalizado = nombre;
+  _wizCur.paso = 1;
+  renderWizCur();
+}
+
+function wizCurSig1() {
+  const sel = document.getElementById('wc-estructura');
+  _wizCur.datos.id_estructura    = sel ? sel.value : '';
+  _wizCur.datos._estrLabel       = sel ? sel.options[sel.selectedIndex]?.text : 'Default';
+  _wizCur.paso = 2;
+  renderWizCur();
+}
+
+function wizCurAtras() { _wizCur.paso = Math.max(0, _wizCur.paso - 1); renderWizCur(); }
+
+async function wizCurGuardar() {
+  const d = _wizCur.datos;
+  try {
+    await apiPost('crear','cursos',{
+      año:                 d.año,
+      division:            d.division,
+      nombre_personalizado: d.nombre_personalizado || '',
+      id_estructura:       d.id_estructura || null,
+      activo:              true
+    });
+    delete _cache['CURSOS'];
+    // Mostrar éxito
+    document.getElementById('panels-cur').innerHTML = `
+      <div class="success-state">
+        <div class="success-icon"><i class="ti ti-check"></i></div>
+        <p class="success-title">Curso creado</p>
+        <p class="success-sub">${d.año}° ${d.division}${d.nombre_personalizado?' — '+d.nombre_personalizado:''}</p>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:0.5rem">
+          <button onclick="abrirWizardCur()"><i class="ti ti-plus"></i> Crear otro</button>
+          <button class="primary" onclick="volverListadoCur()"><i class="ti ti-list"></i> Ver listado</button>
+        </div>
+      </div>`;
+    document.getElementById('steps-cur').innerHTML = '';
+  } catch(e) { showToast('Error: ' + e.message, 'err'); }
 }
 
 // ============================================================
