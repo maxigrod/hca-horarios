@@ -1635,6 +1635,14 @@ function renderAsigMat() {
   const profs   = fichaMatState._profesores || [];
   const cursos  = fichaMatState._cursos || [];
 
+  // === DIAGNÓSTICO TEMPORAL — borrar después ===
+  console.log('=== renderAsigMat ===');
+  console.log('id_materia buscado:', fichaMatState.id);
+  console.log('asignaciones de esta materia:', asig);
+  console.log('todos los profesores (id, apellido):', profs.map(p => `${p.id} — ${p.apellido}`));
+  console.log('todos los cursos (id, año+div):', cursos.map(c => `${c.id} — ${c.año}${c.division}`));
+  // =============================================
+
   if (asig.length === 0) {
     cont.innerHTML = `<p style="font-size:12px;color:var(--color-text-faint);padding:4px 0">
       Sin asignaciones activas para esta materia.
