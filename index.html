@@ -441,9 +441,13 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
       <p class="page-sub">Ajustes del sistema</p>
       <div class="cfg-tabs">
         <button class="cfg-tab active" id="cfg-tab-estructuras" onclick="activarCfgTab('estructuras')">Estructuras horarias</button>
+        <button class="cfg-tab" id="cfg-tab-usuarios" onclick="activarCfgTab('usuarios')">Usuarios</button>
       </div>
       <div id="cfg-panel-estructuras" class="cfg-panel">
         <div id="cfg-estr-container"></div>
+      </div>
+      <div id="cfg-panel-usuarios" class="cfg-panel">
+        <div id="cfg-usuarios-container"></div>
       </div>
     </div>
 
@@ -2278,6 +2282,7 @@ function activarCfgTab(tab) {
   document.getElementById('cfg-tab-' + tab)?.classList.add('active');
   document.getElementById('cfg-panel-' + tab)?.classList.add('active');
   if (tab === 'estructuras') renderEstructuras();
+  if (tab === 'usuarios')    renderUsuarios();
 }
 
 // ============================================================
@@ -2366,7 +2371,11 @@ function abrirEstructura(idEstr) {
 
 function _renderBloquesPanelEstr(estr, bloques) {
   const panel = document.getElementById('estr-bloques-panel');
-  const rows = bloques.map((b, i) => _renderBloqueRow(b, i)).join('');
+  let acadCount = 0;
+  const rows = bloques.map((b) => {
+    const nroDisplay = b.tipo === 'academico' ? ++acadCount : null;
+    return _renderBloqueRow(b, nroDisplay);
+  }).join('');
 
   panel.innerHTML = `
     <div class="card" style="padding:0;overflow:hidden;margin-top:1rem">
@@ -2396,10 +2405,10 @@ function _renderBloquesPanelEstr(estr, bloques) {
   _initDragDrop();
 }
 
-function _renderBloqueRow(b, i) {
+function _renderBloqueRow(b, nroDisplay) {
   const id     = b.id || b._tempId;
   const tipo   = b.tipo || 'academico';
-  const numero = tipo === 'academico' ? (b.numero || '') : '—';
+  const numero = tipo === 'academico' ? (nroDisplay ?? '') : '—';
 
   return `<tr draggable="true" data-id="${id}">
     <td><span class="drag-handle"><i class="ti ti-grip-vertical"></i></span></td>
@@ -2437,10 +2446,12 @@ function agregarBloqueEstr() {
   _estrState.bloquesNuevos.push(nuevo);
   _estrState._bloquesOrden.push(tempId);
   const tbody = document.getElementById('bloques-tbody');
+  const nroNuevo = [...tbody.querySelectorAll('tr[data-id] select')]
+    .filter(s => s.value === 'academico').length + 1;
   const tr = document.createElement('tr');
   tr.setAttribute('draggable','true');
   tr.setAttribute('data-id', tempId);
-  tr.innerHTML = _renderBloqueRow(nuevo, tbody.children.length).replace(/^<tr[^>]*>/,'').replace(/<\/tr>$/,'');
+  tr.innerHTML = _renderBloqueRow(nuevo, nroNuevo).replace(/^<tr[^>]*>/,'').replace(/<\/tr>$/,'');
   tbody.appendChild(tr);
   _initDragDrop();
 }
@@ -2649,6 +2660,192 @@ function showToast(msg, tipo) {
   const t = document.getElementById('toast');
   t.innerHTML = `<i class="ti ${tipo==='err'?'ti-alert-circle':'ti-check'}" style="font-size:14px;color:${tipo==='err'?'var(--color-red-text)':'#1D9E75'}"></i> ${msg}`;
   t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ============================================================
+// USUARIOS
+// ============================================================
+const MAX_ADMINS = 2;
+let _usuariosData = [];
+
+async function renderUsuarios() {
+  if (USUARIO.rol !== 'admin') {
+    document.getElementById('cfg-usuarios-container').innerHTML = `
+      <div class="card" style="text-align:center;padding:2.5rem;color:var(--color-text-muted)">
+        <i class="ti ti-lock" style="font-size:32px;display:block;margin-bottom:8px"></i>
+        <p>Solo los administradores pueden gestionar usuarios.</p>
+      </div>`;
+    return;
+  }
+  const cont = document.getElementById('cfg-usuarios-container');
+  cont.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando...</div>';
+  try {
+    const usuarios = await apiGet('leer', 'USUARIOS');
+    _usuariosData = usuarios;
+    _renderUsuariosPanel(usuarios);
+  } catch(e) {
+    cont.innerHTML = `<div class="card" style="padding:1.5rem;color:var(--color-red-text)">Error al cargar usuarios: ${e.message}</div>`;
+  }
+}
+
+function _renderUsuariosPanel(usuarios) {
+  const cont = document.getElementById('cfg-usuarios-container');
+  const activos = usuarios.filter(u => isTruthy(u.activo));
+  const adminsActivos = activos.filter(u => u.rol === 'admin').length;
+
+  const filas = usuarios.map(u => {
+    const activo = isTruthy(u.activo);
+    const rolBadge = {
+      admin:  `<span class="badge" style="background:var(--color-purple-bg);color:var(--color-purple-text)">Admin</span>`,
+      editor: `<span class="badge" style="background:var(--color-blue-bg);color:var(--color-blue-text)">Editor</span>`,
+      viewer: `<span class="badge" style="background:var(--color-amber-bg);color:var(--color-amber-text)">Visualizador</span>`,
+    }[u.rol] || `<span class="badge">${u.rol}</span>`;
+
+    const estadoBadge = activo
+      ? `<span class="badge" style="background:var(--color-green-bg);color:var(--color-green-text)">Activo</span>`
+      : `<span class="badge" style="background:var(--color-red-bg);color:var(--color-red-text)">Inactivo</span>`;
+
+    const esSelf = u.email === USUARIO.email;
+
+    const selectorRol = activo && !esSelf ? `
+      <select onchange="cambiarRolUsuario('${u.email}', this.value, ${adminsActivos})"
+              style="width:120px;font-size:12px;padding:4px 8px">
+        <option value="admin"  ${u.rol==='admin' ?'selected':''}>Admin</option>
+        <option value="editor" ${u.rol==='editor'?'selected':''}>Editor</option>
+        <option value="viewer" ${u.rol==='viewer'?'selected':''}>Visualizador</option>
+      </select>` : rolBadge;
+
+    const btnBaja = esSelf ? '' : (activo
+      ? `<button onclick="toggleUsuario('${u.email}', false, '${u.rol}', ${adminsActivos})"
+           style="font-size:11px;padding:3px 10px;color:var(--color-red-text)">Dar de baja</button>`
+      : `<button onclick="toggleUsuario('${u.email}', true, '${u.rol}', ${adminsActivos})"
+           style="font-size:11px;padding:3px 10px">Reactivar</button>`);
+
+    return `<tr>
+      <td style="font-weight:500;padding:8px 18px">${u.nombre || '—'}</td>
+      <td style="color:var(--color-text-muted);font-size:12px;padding:8px 16px">${u.email}</td>
+      <td style="padding:8px 16px">${selectorRol}</td>
+      <td style="padding:8px 16px">${estadoBadge}</td>
+      <td style="text-align:right;white-space:nowrap;padding:8px 18px">${btnBaja}</td>
+    </tr>`;
+  }).join('');
+
+  cont.innerHTML = `
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:0.5px solid var(--color-border)">
+        <div>
+          <span style="font-size:13px;font-weight:500">Usuarios con acceso</span>
+          <span style="font-size:12px;color:var(--color-text-muted);margin-left:10px">${activos.length} activo${activos.length!==1?'s':''} · ${adminsActivos}/${MAX_ADMINS} admins</span>
+        </div>
+        <button class="primary" onclick="abrirFormNuevoUsuario()" style="font-size:12px;padding:5px 12px">
+          <i class="ti ti-plus"></i> Agregar usuario
+        </button>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="font-size:11px;color:var(--color-text-muted);text-align:left;border-bottom:0.5px solid var(--color-border)">
+              <th style="padding:8px 18px;font-weight:500">Nombre</th>
+              <th style="padding:8px 16px;font-weight:500">Email</th>
+              <th style="padding:8px 16px;font-weight:500">Rol</th>
+              <th style="padding:8px 16px;font-weight:500">Estado</th>
+              <th style="padding:8px 18px"></th>
+            </tr>
+          </thead>
+          <tbody>${filas}</tbody>
+        </table>
+      </div>
+    </div>
+    <div id="nuevo-usuario-form" style="display:none;margin-top:1rem">
+      <div class="card" style="padding:18px;max-width:480px">
+        <p style="font-size:13px;font-weight:500;margin-bottom:14px">Nuevo usuario</p>
+        <div class="field" style="margin-bottom:10px">
+          <label>Email institucional *</label>
+          <input id="nu-email" type="email" placeholder="usuario@colegioandersen.org" />
+        </div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Nombre completo *</label>
+          <input id="nu-nombre" placeholder="Ej: Ana Gómez" />
+        </div>
+        <div class="field" style="margin-bottom:16px">
+          <label>Rol</label>
+          <select id="nu-rol">
+            <option value="viewer">Visualizador</option>
+            <option value="editor">Editor</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="primary" onclick="guardarNuevoUsuario(${adminsActivos})" style="font-size:12px">
+            <i class="ti ti-check"></i> Guardar
+          </button>
+          <button onclick="cerrarFormNuevoUsuario()" style="font-size:12px">Cancelar</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function abrirFormNuevoUsuario() {
+  document.getElementById('nuevo-usuario-form').style.display = 'block';
+  document.getElementById('nu-email').focus();
+}
+
+function cerrarFormNuevoUsuario() {
+  document.getElementById('nuevo-usuario-form').style.display = 'none';
+  document.getElementById('nu-email').value  = '';
+  document.getElementById('nu-nombre').value = '';
+  document.getElementById('nu-rol').value    = 'viewer';
+}
+
+async function guardarNuevoUsuario(adminsActivos) {
+  const email  = document.getElementById('nu-email').value.trim().toLowerCase();
+  const nombre = document.getElementById('nu-nombre').value.trim();
+  const rol    = document.getElementById('nu-rol').value;
+  if (!email || !nombre) { showToast('Completá email y nombre', 'err'); return; }
+  if (!email.endsWith('@colegioandersen.org')) { showToast('El email debe ser @colegioandersen.org', 'err'); return; }
+  if (rol === 'admin' && adminsActivos >= MAX_ADMINS) { showToast(`Máximo ${MAX_ADMINS} admins activos permitidos.`, 'err'); return; }
+  if (_usuariosData.find(u => u.email === email)) { showToast('Ya existe un usuario con ese email', 'err'); return; }
+  try {
+    await apiPost('crear', 'usuarios', { email, nombre, rol, activo: true, fecha_alta: new Date().toISOString().slice(0,10) });
+    delete _cache['USUARIOS'];
+    showToast('Usuario agregado');
+    renderUsuarios();
+  } catch(e) { showToast('Error: ' + e.message, 'err'); }
+}
+
+async function cambiarRolUsuario(email, nuevoRol, adminsActivos) {
+  const usuario = _usuariosData.find(u => u.email === email);
+  if (!usuario) return;
+  if (nuevoRol === 'admin' && usuario.rol !== 'admin' && adminsActivos >= MAX_ADMINS) {
+    showToast(`Máximo ${MAX_ADMINS} admins activos permitidos.`, 'err');
+    renderUsuarios(); return;
+  }
+  try {
+    await apiPost('editar', 'usuarios', { rol: nuevoRol }, usuario.id);
+    delete _cache['USUARIOS'];
+    showToast('Rol actualizado');
+    renderUsuarios();
+  } catch(e) { showToast('Error: ' + e.message, 'err'); renderUsuarios(); }
+}
+
+async function toggleUsuario(email, activar, rolActual, adminsActivos) {
+  const usuario = _usuariosData.find(u => u.email === email);
+  if (!usuario) return;
+  if (activar && rolActual === 'admin' && adminsActivos >= MAX_ADMINS) {
+    showToast(`Máximo ${MAX_ADMINS} admins activos. Cambiá el rol antes de reactivar.`, 'err'); return;
+  }
+  confirmar(
+    `¿${activar ? 'Reactivar' : 'Dar de baja'} a ${usuario.nombre}?`,
+    activar ? 'El usuario volverá a tener acceso al sistema.' : 'El usuario perderá el acceso al sistema.',
+    async () => {
+      try {
+        await apiPost('editar', 'usuarios', { activo: activar }, usuario.id);
+        delete _cache['USUARIOS'];
+        showToast(`Usuario ${activar ? 'reactivado' : 'dado de baja'}`);
+        renderUsuarios();
+      } catch(e) { showToast('Error: ' + e.message, 'err'); }
+    }
+  );
 }
 
 // ============================================================
