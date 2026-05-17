@@ -441,13 +441,9 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
       <p class="page-sub">Ajustes del sistema</p>
       <div class="cfg-tabs">
         <button class="cfg-tab active" id="cfg-tab-estructuras" onclick="activarCfgTab('estructuras')">Estructuras horarias</button>
-        <button class="cfg-tab" id="cfg-tab-usuarios" onclick="activarCfgTab('usuarios')">Usuarios</button>
       </div>
       <div id="cfg-panel-estructuras" class="cfg-panel">
         <div id="cfg-estr-container"></div>
-      </div>
-      <div id="cfg-panel-usuarios" class="cfg-panel">
-        <div id="cfg-usuarios-container"></div>
       </div>
     </div>
 
@@ -1464,7 +1460,12 @@ async function abrirFichaMat(id) {
   const cont = document.getElementById('mat-ficha');
   cont.innerHTML = '<div class="loading" style="padding:2rem"><div class="spinner"></div> Cargando ficha...</div>';
   try {
-    const [mats, cargas] = await Promise.all([apiGet('leer','MATERIAS'), apiGet('leer','CARGA_HORARIA')]);
+    const [mats, cargas, matDocentes, profs] = await Promise.all([
+      apiGet('leer','MATERIAS'),
+      apiGet('leer','CARGA_HORARIA'),
+      apiGet('leer','MATERIA_DOCENTES'),
+      apiGet('leer','PROFESORES'),
+    ]);
     const mat = mats.find(m => String(m.id) === String(id));
     if (!mat) throw new Error('Materia no encontrada');
 
@@ -1481,7 +1482,16 @@ async function abrirFichaMat(id) {
       }
     });
 
-    fichaMatState = { id: mat.id, nombre: mat.nombre||'', area: mat.area||'', activa, compartida: isTruthy(mat.compartida), cargaEdit };
+    // Docentes asignados a esta materia compartida
+    const docentesMat = matDocentes.filter(d => String(d.id_materia) === String(mat.id));
+
+    fichaMatState = {
+      id: mat.id, nombre: mat.nombre||'', area: mat.area||'', activa,
+      compartida: isTruthy(mat.compartida), cargaEdit,
+      docentes: docentesMat,          // filas existentes en MATERIA_DOCENTES
+      docentesEliminados: [],         // ids a eliminar al guardar
+      _profesores: profs.filter(p => isTruthy(p.activo)), // para los selects
+    };
 
     cont.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem">
@@ -1520,6 +1530,27 @@ async function abrirFichaMat(id) {
           </div>
         </div>
 
+        <!-- SECCIÓN DOCENTES COMPARTIDOS -->
+        <div class="ficha-section" id="fi-docentes-section" style="display:${fichaMatState.compartida ? 'block' : 'none'}">
+          <div class="ficha-section-title">Docentes y grupos</div>
+          <p style="font-size:12px;color:var(--color-text-muted);margin-bottom:12px">
+            Cada fila representa un profesor que dicta esta materia a un grupo específico.
+          </p>
+          <table style="width:100%;border-collapse:collapse;margin-bottom:10px" id="fi-docentes-tabla">
+            <thead>
+              <tr style="font-size:11px;color:var(--color-text-muted);border-bottom:0.5px solid var(--color-border)">
+                <th style="padding:6px 10px;text-align:left;font-weight:500">Profesor</th>
+                <th style="padding:6px 10px;text-align:left;font-weight:500">Descripción del grupo</th>
+                <th style="padding:6px 4px;width:32px"></th>
+              </tr>
+            </thead>
+            <tbody id="fi-docentes-tbody"></tbody>
+          </table>
+          <button onclick="agregarDocenteCompartido()" style="font-size:12px;padding:5px 12px">
+            <i class="ti ti-plus"></i> Agregar docente
+          </button>
+        </div>
+
         <div class="ficha-section">
           <div class="ficha-section-title">Carga horaria por año</div>
           <table style="width:100%;border-collapse:collapse" id="tabla-carga-ficha">
@@ -1543,6 +1574,9 @@ async function abrirFichaMat(id) {
 
     // Renderizar tabla de carga
     renderCargaFichaBody();
+
+    // Renderizar tabla de docentes compartidos
+    renderDocentesTbody();
 
   } catch(e) { cont.innerHTML = `<p style="color:var(--color-red-text);padding:1rem">Error: ${e.message}</p>`; }
 }
@@ -1586,28 +1620,111 @@ function guardarFichaMat() {
       const cargas = _cache['CARGA_HORARIA'] || await apiGet('leer','CARGA_HORARIA');
       for (const a of AÑOS) {
         const { id_carga, activo, bloques } = fichaMatState.cargaEdit[a];
-        // Leer valor actual del input por si el usuario escribió sin disparar onchange
         const blInput = parseInt(document.getElementById(`fc-bl-${a}`)?.value) || bloques;
-
         if (activo && blInput > 0) {
           if (id_carga) {
-            // Ya existe → editar
             await apiPost('editar','carga_horaria', { bloques_semanales: blInput }, id_carga);
           } else {
-            // No existe → crear
             await apiPost('crear','carga_horaria', { id_materia: fichaMatState.id, año: a, bloques_semanales: blInput, duracion_override_min:'' });
           }
         } else if (!activo && id_carga) {
-          // Existía y fue desactivado → eliminar
           await apiPost('eliminar','carga_horaria', {}, id_carga);
         }
       }
 
-      delete _cache['MATERIAS']; delete _cache['CARGA_HORARIA'];
+      // 3. Sincronizar docentes compartidos (solo si la materia es compartida)
+      if (fichaMatState.compartida) {
+        // Eliminar los marcados para borrar
+        for (const idDoc of fichaMatState.docentesEliminados) {
+          if (!String(idDoc).startsWith('new_')) {
+            await apiPost('eliminar','materia_docentes', {}, idDoc);
+          }
+        }
+        // Crear los nuevos (id empieza con 'new_')
+        const filas = document.querySelectorAll('#fi-docentes-tbody tr[data-doc-id]');
+        for (const fila of filas) {
+          const docId = fila.getAttribute('data-doc-id');
+          if (!String(docId).startsWith('new_')) continue; // los existentes no se tocan
+          const idProf = fila.querySelector('select')?.value;
+          const desc   = fila.querySelector('input')?.value.trim() || '';
+          if (!idProf) continue;
+          await apiPost('crear','materia_docentes', {
+            id_materia: fichaMatState.id,
+            id_profesor: idProf,
+            descripcion_grupo: desc,
+          });
+        }
+      } else {
+        // Si se cambió a "no compartida", eliminar todos los docentes existentes
+        for (const doc of fichaMatState.docentes) {
+          if (doc.id && !String(doc.id).startsWith('new_')) {
+            await apiPost('eliminar','materia_docentes', {}, doc.id);
+          }
+        }
+      }
+
+      delete _cache['MATERIAS']; delete _cache['CARGA_HORARIA']; delete _cache['MATERIA_DOCENTES'];
       showToast('Cambios guardados');
       volverListadoMat();
     } catch(e) { showToast('Error: ' + e.message, 'err'); }
   });
+}
+
+// ---- Docentes compartidos ----
+
+function renderDocentesTbody() {
+  const tbody = document.getElementById('fi-docentes-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = fichaMatState.docentes.map(d => _renderDocenteRow(d)).join('');
+}
+
+function _renderDocenteRow(d) {
+  const idDoc = d.id || d._tempId;
+  const profsOptions = fichaMatState._profesores.map(p =>
+    `<option value="${p.id}" ${String(p.id) === String(d.id_profesor) ? 'selected' : ''}>${p.apellido}, ${p.nombre}</option>`
+  ).join('');
+  return `<tr data-doc-id="${idDoc}">
+    <td style="padding:4px 6px">
+      <select style="width:100%;font-size:12px;padding:4px 8px">
+        <option value="">— Seleccioná un profesor —</option>
+        ${profsOptions}
+      </select>
+    </td>
+    <td style="padding:4px 6px">
+      <input type="text" value="${d.descripcion_grupo||''}" placeholder="Ej: Grupo A — 1° y 2° año"
+             style="font-size:12px;padding:4px 8px" />
+    </td>
+    <td style="padding:4px;text-align:center">
+      <button onclick="eliminarDocenteCompartido('${idDoc}')"
+              style="padding:2px 6px;font-size:11px;color:var(--color-red-text)">
+        <i class="ti ti-trash"></i>
+      </button>
+    </td>
+  </tr>`;
+}
+
+function agregarDocenteCompartido() {
+  const tempId = 'new_' + Date.now();
+  const nuevo = { _tempId: tempId, id: tempId, id_materia: fichaMatState.id, id_profesor: '', descripcion_grupo: '' };
+  fichaMatState.docentes.push(nuevo);
+  const tbody = document.getElementById('fi-docentes-tbody');
+  if (tbody) {
+    const tr = document.createElement('tr');
+    tr.setAttribute('data-doc-id', tempId);
+    tr.innerHTML = _renderDocenteRow(nuevo).replace(/^<tr[^>]*>/,'').replace(/<\/tr>$/,'');
+    tbody.appendChild(tr);
+  }
+}
+
+function eliminarDocenteCompartido(idDoc) {
+  // Si ya existía en Sheets, marcar para eliminar al guardar
+  if (!String(idDoc).startsWith('new_')) {
+    fichaMatState.docentesEliminados.push(idDoc);
+  }
+  fichaMatState.docentes = fichaMatState.docentes.filter(d =>
+    String(d.id || d._tempId) !== String(idDoc)
+  );
+  document.querySelector(`#fi-docentes-tbody tr[data-doc-id="${idDoc}"]`)?.remove();
 }
 
 function setCompartidaFicha(val) {
@@ -1617,6 +1734,8 @@ function setCompartidaFicha(val) {
   document.getElementById('fi-comp-hint').textContent = val
     ? 'Varios profesores dictan esta materia en simultáneo a grupos distintos.'
     : 'Un único profesor dicta esta materia por curso.';
+  const seccion = document.getElementById('fi-docentes-section');
+  if (seccion) seccion.style.display = val ? 'block' : 'none';
 }
 
 function confirmarBajaMat() {
@@ -2159,7 +2278,6 @@ function activarCfgTab(tab) {
   document.getElementById('cfg-tab-' + tab)?.classList.add('active');
   document.getElementById('cfg-panel-' + tab)?.classList.add('active');
   if (tab === 'estructuras') renderEstructuras();
-  if (tab === 'usuarios')    renderUsuarios();
 }
 
 // ============================================================
@@ -2531,219 +2649,6 @@ function showToast(msg, tipo) {
   const t = document.getElementById('toast');
   t.innerHTML = `<i class="ti ${tipo==='err'?'ti-alert-circle':'ti-check'}" style="font-size:14px;color:${tipo==='err'?'var(--color-red-text)':'#1D9E75'}"></i> ${msg}`;
   t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-// ============================================================
-// USUARIOS
-// ============================================================
-const MAX_ADMINS = 2;
-
-async function renderUsuarios() {
-  // Solo admin puede gestionar usuarios
-  if (USUARIO.rol !== 'admin') {
-    document.getElementById('cfg-usuarios-container').innerHTML = `
-      <div class="card" style="text-align:center;padding:2.5rem;color:var(--color-text-muted)">
-        <i class="ti ti-lock" style="font-size:32px;display:block;margin-bottom:8px"></i>
-        <p>Solo los administradores pueden gestionar usuarios.</p>
-      </div>`;
-    return;
-  }
-
-  const cont = document.getElementById('cfg-usuarios-container');
-  cont.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando...</div>';
-
-  try {
-    const usuarios = await apiGet('leer', 'USUARIOS');
-    _usuariosData = usuarios;
-    _renderUsuariosPanel(usuarios);
-  } catch(e) {
-    cont.innerHTML = `<div class="card" style="padding:1.5rem;color:var(--color-red-text)">Error al cargar usuarios: ${e.message}</div>`;
-  }
-}
-
-let _usuariosData = [];
-
-function _renderUsuariosPanel(usuarios) {
-  const cont = document.getElementById('cfg-usuarios-container');
-  const activos   = usuarios.filter(u => isTruthy(u.activo));
-  const inactivos = usuarios.filter(u => !isTruthy(u.activo));
-  const adminsActivos = activos.filter(u => u.rol === 'admin').length;
-
-  const filas = usuarios.map(u => {
-    const activo = isTruthy(u.activo);
-    const rolBadge = {
-      admin:      `<span class="badge" style="background:var(--color-purple-bg);color:var(--color-purple-text)">Admin</span>`,
-      editor:     `<span class="badge" style="background:var(--color-blue-bg);color:var(--color-blue-text)">Editor</span>`,
-      viewer:     `<span class="badge" style="background:var(--color-amber-bg);color:var(--color-amber-text)">Visualizador</span>`,
-    }[u.rol] || `<span class="badge">${u.rol}</span>`;
-
-    const estadoBadge = activo
-      ? `<span class="badge" style="background:var(--color-green-bg);color:var(--color-green-text)">Activo</span>`
-      : `<span class="badge" style="background:var(--color-red-bg);color:var(--color-red-text)">Inactivo</span>`;
-
-    // No permitir editar/dar de baja al propio usuario
-    const esSelf = u.email === USUARIO.email;
-
-    const selectorRol = activo && !esSelf ? `
-      <select onchange="cambiarRolUsuario('${u.email}', this.value, ${adminsActivos})"
-              style="width:120px;font-size:12px;padding:4px 8px">
-        <option value="admin"  ${u.rol==='admin' ?'selected':''}>Admin</option>
-        <option value="editor" ${u.rol==='editor'?'selected':''}>Editor</option>
-        <option value="viewer" ${u.rol==='viewer'?'selected':''}>Visualizador</option>
-      </select>` : rolBadge;
-
-    const btnBaja = esSelf ? '' : (activo
-      ? `<button onclick="toggleUsuario('${u.email}', false, '${u.rol}', ${adminsActivos})"
-           style="font-size:11px;padding:3px 10px;color:var(--color-red-text)">Dar de baja</button>`
-      : `<button onclick="toggleUsuario('${u.email}', true, '${u.rol}', ${adminsActivos})"
-           style="font-size:11px;padding:3px 10px">Reactivar</button>`);
-
-    return `<tr>
-      <td style="font-weight:500">${u.nombre || '—'}</td>
-      <td style="color:var(--color-text-muted);font-size:12px">${u.email}</td>
-      <td>${selectorRol}</td>
-      <td>${estadoBadge}</td>
-      <td style="text-align:right;white-space:nowrap">${btnBaja}</td>
-    </tr>`;
-  }).join('');
-
-  cont.innerHTML = `
-    <div class="card" style="padding:0;overflow:hidden">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:0.5px solid var(--color-border)">
-        <div>
-          <span style="font-size:13px;font-weight:500">Usuarios con acceso</span>
-          <span style="font-size:12px;color:var(--color-text-muted);margin-left:10px">${activos.length} activo${activos.length!==1?'s':''} · ${adminsActivos}/${MAX_ADMINS} admins</span>
-        </div>
-        <button class="primary" onclick="abrirFormNuevoUsuario()" style="font-size:12px;padding:5px 12px">
-          <i class="ti ti-plus"></i> Agregar usuario
-        </button>
-      </div>
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse">
-          <thead>
-            <tr style="font-size:11px;color:var(--color-text-muted);text-align:left;border-bottom:0.5px solid var(--color-border)">
-              <th style="padding:8px 18px;font-weight:500">Nombre</th>
-              <th style="padding:8px 16px;font-weight:500">Email</th>
-              <th style="padding:8px 16px;font-weight:500">Rol</th>
-              <th style="padding:8px 16px;font-weight:500">Estado</th>
-              <th style="padding:8px 18px"></th>
-            </tr>
-          </thead>
-          <tbody>${filas}</tbody>
-        </table>
-      </div>
-    </div>
-    <!-- panel formulario nuevo usuario (oculto por defecto) -->
-    <div id="nuevo-usuario-form" style="display:none;margin-top:1rem">
-      <div class="card" style="padding:18px;max-width:480px">
-        <p style="font-size:13px;font-weight:500;margin-bottom:14px">Nuevo usuario</p>
-        <div class="field" style="margin-bottom:10px">
-          <label>Email institucional *</label>
-          <input id="nu-email" type="email" placeholder="usuario@colegioandersen.org" />
-        </div>
-        <div class="field" style="margin-bottom:10px">
-          <label>Nombre completo *</label>
-          <input id="nu-nombre" placeholder="Ej: Ana Gómez" />
-        </div>
-        <div class="field" style="margin-bottom:16px">
-          <label>Rol</label>
-          <select id="nu-rol">
-            <option value="viewer">Visualizador</option>
-            <option value="editor">Editor</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="primary" onclick="guardarNuevoUsuario(${adminsActivos})" style="font-size:12px">
-            <i class="ti ti-check"></i> Guardar
-          </button>
-          <button onclick="cerrarFormNuevoUsuario()" style="font-size:12px">Cancelar</button>
-        </div>
-      </div>
-    </div>`;
-}
-
-function abrirFormNuevoUsuario() {
-  document.getElementById('nuevo-usuario-form').style.display = 'block';
-  document.getElementById('nu-email').focus();
-}
-
-function cerrarFormNuevoUsuario() {
-  document.getElementById('nuevo-usuario-form').style.display = 'none';
-  document.getElementById('nu-email').value  = '';
-  document.getElementById('nu-nombre').value = '';
-  document.getElementById('nu-rol').value    = 'viewer';
-}
-
-async function guardarNuevoUsuario(adminsActivos) {
-  const email  = document.getElementById('nu-email').value.trim().toLowerCase();
-  const nombre = document.getElementById('nu-nombre').value.trim();
-  const rol    = document.getElementById('nu-rol').value;
-
-  if (!email || !nombre) { showToast('Completá email y nombre', 'err'); return; }
-  if (!email.endsWith('@colegioandersen.org')) { showToast('El email debe ser @colegioandersen.org', 'err'); return; }
-  if (rol === 'admin' && adminsActivos >= MAX_ADMINS) { showToast(`Ya hay ${MAX_ADMINS} admins activos. Máximo permitido: ${MAX_ADMINS}.`, 'err'); return; }
-
-  // Verificar duplicado
-  const yaExiste = _usuariosData.find(u => u.email === email);
-  if (yaExiste) { showToast('Ya existe un usuario con ese email', 'err'); return; }
-
-  try {
-    await apiPost('crear', 'usuarios', {
-      email, nombre, rol, activo: true,
-      fecha_alta: new Date().toISOString().slice(0, 10)
-    });
-    delete _cache['USUARIOS'];
-    showToast('Usuario agregado');
-    renderUsuarios();
-  } catch(e) { showToast('Error: ' + e.message, 'err'); }
-}
-
-async function cambiarRolUsuario(email, nuevoRol, adminsActivos) {
-  const usuario = _usuariosData.find(u => u.email === email);
-  if (!usuario) return;
-
-  const rolAnterior = usuario.rol;
-
-  // Validar límite de admins al ascender
-  if (nuevoRol === 'admin' && rolAnterior !== 'admin' && adminsActivos >= MAX_ADMINS) {
-    showToast(`Ya hay ${MAX_ADMINS} admins activos. Máximo permitido: ${MAX_ADMINS}.`, 'err');
-    // Revertir el select visualmente
-    renderUsuarios();
-    return;
-  }
-
-  try {
-    await apiPost('editar', 'usuarios', { rol: nuevoRol }, usuario.id);
-    delete _cache['USUARIOS'];
-    showToast('Rol actualizado');
-    renderUsuarios();
-  } catch(e) { showToast('Error: ' + e.message, 'err'); renderUsuarios(); }
-}
-
-async function toggleUsuario(email, activar, rolActual, adminsActivos) {
-  const usuario = _usuariosData.find(u => u.email === email);
-  if (!usuario) return;
-
-  // Si se intenta reactivar un admin y ya hay 2, bloquear
-  if (activar && rolActual === 'admin' && adminsActivos >= MAX_ADMINS) {
-    showToast(`Ya hay ${MAX_ADMINS} admins activos. Cambiá el rol antes de reactivar.`, 'err');
-    return;
-  }
-
-  const accion = activar ? 'reactivar' : 'dar de baja';
-  confirmar(
-    `¿${activar ? 'Reactivar' : 'Dar de baja'} a ${usuario.nombre}?`,
-    activar ? 'El usuario volverá a tener acceso al sistema.' : 'El usuario perderá el acceso al sistema.',
-    async () => {
-      try {
-        await apiPost('editar', 'usuarios', { activo: activar }, usuario.id);
-        delete _cache['USUARIOS'];
-        showToast(`Usuario ${activar ? 'reactivado' : 'dado de baja'}`);
-        renderUsuarios();
-      } catch(e) { showToast('Error: ' + e.message, 'err'); }
-    }
-  );
 }
 
 // ============================================================
