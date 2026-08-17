@@ -774,9 +774,11 @@ async function initWizardProf() {
 
 function renderStepsProf() {
   const labels = ['Datos','Materias','Disponibilidad','Confirmar'];
+  // El paso 5 es la pantalla de éxito posterior a "Confirmar" — se muestran los 4 pasos como completados.
+  const pasoEfectivo = profState.step > labels.length ? labels.length + 1 : profState.step;
   document.getElementById('steps-prof').innerHTML = labels.map((l,i) => {
-    const n = i+1, cls = n < profState.step ? 'done' : n === profState.step ? 'active' : '';
-    return `<div class="step-dot ${cls}"><div class="dot-circle">${n < profState.step ? '<i class="ti ti-check" style="font-size:13px"></i>' : n}</div><span class="step-label">${l}</span></div>${i < labels.length-1 ? '<div class="step-line"></div>' : ''}`;
+    const n = i+1, cls = n < pasoEfectivo ? 'done' : n === pasoEfectivo ? 'active' : '';
+    return `<div class="step-dot ${cls}"><div class="dot-circle">${n < pasoEfectivo ? '<i class="ti ti-check" style="font-size:13px"></i>' : n}</div><span class="step-label">${l}</span></div>${i < labels.length-1 ? '<div class="step-line"></div>' : ''}`;
   }).join('');
 }
 
@@ -880,13 +882,50 @@ async function renderPanelProf(step) {
   }
 }
 
-function avanzarProf2() {
+async function avanzarProf2() {
   profState.apellido        = document.getElementById('p-apellido')?.value.trim() || '';
   profState.nombre          = document.getElementById('p-nombre')?.value.trim()   || '';
   profState.email           = document.getElementById('p-email')?.value.trim()    || '';
   profState.horas_contrato  = document.getElementById('p-horas')?.value           || '';
   profState.unidad_contrato = document.getElementById('p-unidad')?.value          || 'horas_reloj';
   if (!profState.apellido || !profState.nombre) { showToast('Completá nombre y apellido', 'err'); return; }
+  if (profState.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profState.email)) {
+    showToast('El email no tiene un formato válido', 'err'); return;
+  }
+
+  // Verificar duplicados por email (solo si se cargó un email)
+  if (profState.email) {
+    try {
+      const profs = await apiGet('leer', 'PROFESORES');
+      const emailLower = profState.email.toLowerCase();
+      const existente = profs.find(p => (p.email || '').toLowerCase() === emailLower);
+
+      if (existente) {
+        if (isTruthy(existente.activo)) {
+          showToast(`Ya existe un profesor activo con el email "${existente.email}" (${existente.apellido}, ${existente.nombre}).`, 'err');
+          return;
+        } else {
+          confirmar(
+            `"${existente.apellido}, ${existente.nombre}" ya existe pero está inactivo`,
+            '¿Querés reactivarlo en lugar de crear un profesor nuevo?',
+            async () => {
+              try {
+                await apiPost('editar', 'profesores', { activo: true }, existente.id);
+                delete _cache['PROFESORES'];
+                showToast(`"${existente.apellido}, ${existente.nombre}" reactivado`);
+                volverListadoProf();
+              } catch(e) { showToast('Error: ' + e.message, 'err'); }
+            }
+          );
+          return;
+        }
+      }
+    } catch(e) {
+      // Si falla la consulta, dejamos pasar — no bloqueamos el alta por un error de red
+      console.warn('No se pudo verificar duplicados:', e.message);
+    }
+  }
+
   renderPanelProf(2);
 }
 function toggleMateriaWiz(el, nombre) {
@@ -1055,6 +1094,29 @@ async function abrirFichaProf(id) {
 function toggleMateriaFicha(el, nombre) {
   if (fichaState.materias.includes(nombre)) { fichaState.materias = fichaState.materias.filter(m => m !== nombre); el.classList.remove('selected'); }
   else { fichaState.materias.push(nombre); el.classList.add('selected'); }
+  renderSelectorAsigMat();
+}
+
+// Reconstruye el <select> de materia del bloque de asignaciones para que
+// siempre refleje el estado actual de "Materias habilitadas" (bug: quedaba
+// desactualizado si se editaban las materias sin recargar la ficha).
+function renderSelectorAsigMat() {
+  const sel = document.getElementById('asig-mat-sel');
+  if (!sel) return;
+  const valorPrevio = sel.value;
+  sel.innerHTML = '<option value="">— elegí una materia —</option>' +
+    fichaState.materias.map(m => {
+      const matObj = (fichaState._mats || []).find(x => x.nombre === m);
+      return `<option value="${matObj?.id||''}" data-nombre="${m}">${m}</option>`;
+    }).join('');
+  // Si la materia que estaba elegida ya no está habilitada, resetear el select de curso
+  const sigueDisponible = [...sel.options].some(o => o.value === valorPrevio && valorPrevio !== '');
+  if (sigueDisponible) {
+    sel.value = valorPrevio;
+  } else {
+    const curSel = document.getElementById('asig-cur-sel');
+    if (curSel) { curSel.innerHTML = '<option value="">— elegí una materia primero —</option>'; curSel.disabled = true; }
+  }
 }
 
 // ============================================================
@@ -1918,7 +1980,7 @@ async function renderListadoCur() {
           ${lista.map(c => {
             const activo  = isTruthy(c.activo);
             const nombre  = c.nombre_personalizado ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px">${c.nombre_personalizado}</div>` : '';
-            const estr    = estructuras.find(e => e.id === c.id_estructura);
+            const estr    = estructuras.find(e => String(e.id) === String(c.id_estructura));
             const eLabel  = estr ? estr.nombre : 'Default';
             return `<div class="card cur-card" onclick="abrirFichaCur('${c.id}')" style="width:130px;cursor:pointer;opacity:${activo?1:0.55};transition:box-shadow 0.15s">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
@@ -1959,7 +2021,7 @@ async function abrirFichaCur(id) {
     const activo = isTruthy(c.activo);
 
     const optsEstr = estructuras.map(e =>
-      `<option value="${e.id}" ${e.id === c.id_estructura ? 'selected' : ''}>${e.nombre}</option>`
+      `<option value="${e.id}" ${String(e.id) === String(c.id_estructura) ? 'selected' : ''}>${e.nombre}</option>`
     ).join('');
 
     cont.innerHTML = `
@@ -2491,8 +2553,6 @@ function abrirEstructura(idEstr) {
       return toMin(a.hora_inicio) - toMin(b.hora_inicio);
     });
 
-  _estrState._bloquesOrden = bloques.map(b => String(b.id)); // orden drag
-
   _renderBloquesPanelEstr(estr, bloques);
 }
 
@@ -2563,15 +2623,12 @@ function eliminarBloqueEstr(id) {
   }
   // Quitar del DOM sin recargar
   document.querySelector(`tr[data-id="${id}"]`)?.remove();
-  // Actualizar orden
-  _estrState._bloquesOrden = _estrState._bloquesOrden.filter(x => x !== String(id));
 }
 
 function agregarBloqueEstr() {
   const tempId = 'new_' + Date.now();
   const nuevo  = { _tempId: tempId, id: tempId, id_estructura: _estrState.idSeleccionada, tipo:'academico', hora_inicio:'', hora_fin:'', duracion_min:'', numero:'' };
   _estrState.bloquesNuevos.push(nuevo);
-  _estrState._bloquesOrden.push(tempId);
   const tbody = document.getElementById('bloques-tbody');
   const nroNuevo = [...tbody.querySelectorAll('tr[data-id] select')]
     .filter(s => s.value === 'academico').length + 1;
@@ -2691,8 +2748,8 @@ function _initDragDrop() {
     row.addEventListener('dragend', () => {
       row.style.opacity = '';
       tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
-      // Actualizar orden interno
-      _estrState._bloquesOrden = [...tbody.querySelectorAll('tr[data-id]')].map(r => r.getAttribute('data-id'));
+      // El orden real al guardar se toma directo del DOM en guardarBloquesEstr(),
+      // no hace falta mantener un estado de orden aparte.
     });
     row.addEventListener('dragover', e => {
       e.preventDefault();
