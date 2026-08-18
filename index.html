@@ -286,6 +286,9 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
     <button class="nav-item" id="nav-cursos" onclick="goTo('cursos')">
       <i class="ti ti-school"></i> Cursos
     </button>
+    <button class="nav-item" id="nav-plan" onclick="goTo('plan')">
+      <i class="ti ti-table"></i> Plan de estudios
+    </button>
     <div class="nav-divider"></div>
     <button class="nav-item" id="nav-reglas" onclick="goTo('reglas')">
       <i class="ti ti-list-check"></i> Reglas
@@ -418,6 +421,33 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
       <div id="cur-ficha" style="display:none"></div>
     </div>
 
+    <!-- PLAN DE ESTUDIOS -->
+    <div class="section" id="section-plan">
+      <p class="page-title">Plan de estudios</p>
+      <p class="page-sub">Materias, carga horaria y profesor a cargo por curso.</p>
+      <div class="card" style="padding:12px 16px;margin-bottom:1rem">
+        <div class="list-toolbar">
+          <div class="field" style="margin-bottom:0">
+            <label>Año</label>
+            <select id="plan-f-año" onchange="onPlanFiltroAñoChange()">
+              <option value="">Todos los años</option>
+              <option value="1">1° año</option><option value="2">2° año</option><option value="3">3° año</option>
+              <option value="4">4° año</option><option value="5">5° año</option><option value="6">6° año</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Curso</label>
+            <select id="plan-f-curso" onchange="filtrarPlan()">
+              <option value="">Todos los cursos</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div id="plan-tabla-wrap"><div class="loading" style="padding:1.5rem"><div class="spinner"></div> Cargando...</div></div>
+      </div>
+    </div>
+
     <!-- REGLAS -->
     <div class="section" id="section-reglas">
       <p class="page-title">Reglas</p>
@@ -525,6 +555,7 @@ function goTo(section) {
   document.getElementById('nav-' + section).classList.add('active');
   if (section === 'horario')    buildHorario();
   if (section === 'cursos')     renderListadoCur();
+  if (section === 'plan')       renderPlanEstudios();
   if (section === 'reglas')     renderReglas();
   if (section === 'profesores') renderListadoProf();
   if (section === 'materias')   renderListadoMat();
@@ -1338,12 +1369,14 @@ async function renderListadoMat() {
 
 async function cargarTablaMat() {
   try {
-    const [mats, cargas] = await Promise.all([apiGet('leer','MATERIAS'), apiGet('leer','CARGA_HORARIA')]);
+    const [mats, cargas, bloquesComp] = await Promise.all([
+      apiGet('leer','MATERIAS'), apiGet('leer','CARGA_HORARIA'), apiGet('leer','BLOQUES_COMPARTIDOS'),
+    ]);
     // Restaurar filtros
     const fa = document.getElementById('mf-area');   if (fa) fa.value = _matFiltros.area;
     const fe = document.getElementById('mf-estado'); if (fe) fe.value = _matFiltros.estado;
     const ft = document.getElementById('mf-tipo');   if (ft) ft.value = _matFiltros.tipo;
-    renderTablaMat(mats, cargas);
+    renderTablaMat(mats, cargas, bloquesComp);
   } catch(e) {
     const w = document.getElementById('mat-tabla-wrap');
     if (w) w.innerHTML = `<p style="padding:1.5rem;color:var(--color-red-text)">Error: ${e.message}</p>`;
@@ -1354,22 +1387,23 @@ function aplicarFiltrosMat() {
   _matFiltros.area   = document.getElementById('mf-area')?.value   || '';
   _matFiltros.estado = document.getElementById('mf-estado')?.value || 'activas';
   _matFiltros.tipo   = document.getElementById('mf-tipo')?.value   || '';
-  renderTablaMat(_cache['MATERIAS'] || [], _cache['CARGA_HORARIA'] || []);
+  renderTablaMat(_cache['MATERIAS'] || [], _cache['CARGA_HORARIA'] || [], _cache['BLOQUES_COMPARTIDOS'] || []);
 }
 
 function limpiarFiltrosMat() {
   _matFiltros = { area:'', estado:'activas', tipo:'' };
   ['mf-area','mf-estado','mf-tipo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = id === 'mf-estado' ? 'activas' : ''; });
-  renderTablaMat(_cache['MATERIAS'] || [], _cache['CARGA_HORARIA'] || []);
+  renderTablaMat(_cache['MATERIAS'] || [], _cache['CARGA_HORARIA'] || [], _cache['BLOQUES_COMPARTIDOS'] || []);
 }
 
-function renderTablaMat(mats, cargas) {
+function renderTablaMat(mats, cargas, bloquesComp) {
   let lista = [...mats];
   if (_matFiltros.estado === 'activas')   lista = lista.filter(m => isTruthy(m.activa));
   if (_matFiltros.estado === 'inactivas') lista = lista.filter(m => !isTruthy(m.activa));
   if (_matFiltros.area)  lista = lista.filter(m => m.area === _matFiltros.area);
-  if (_matFiltros.tipo === 'compartida')    lista = lista.filter(m => isTruthy(m.compartida));
-  if (_matFiltros.tipo === 'no_compartida') lista = lista.filter(m => !isTruthy(m.compartida));
+  const idsConBloque = new Set((bloquesComp||[]).map(b => String(b.id_materia)));
+  if (_matFiltros.tipo === 'compartida')    lista = lista.filter(m => idsConBloque.has(String(m.id)));
+  if (_matFiltros.tipo === 'no_compartida') lista = lista.filter(m => !idsConBloque.has(String(m.id)));
   lista.sort((a,b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
 
   const wrap = document.getElementById('mat-tabla-wrap');
@@ -1382,7 +1416,7 @@ function renderTablaMat(mats, cargas) {
 
   const rows = lista.map(m => {
     const activa = isTruthy(m.activa);
-    const comp   = isTruthy(m.compartida);
+    const comp   = idsConBloque.has(String(m.id));
     // años en que se dicta
     const años = cargas.filter(c => String(c.id_materia) === String(m.id)).map(c => c.año + '°').join(', ') || '—';
     return `<tr class="${activa?'':'inactivo'}" onclick="abrirFichaMat(${m.id})" style="cursor:pointer;transition:background 0.1s" onmouseover="this.style.background='var(--color-bg)'" onmouseout="this.style.background=''">
@@ -1401,27 +1435,8 @@ function renderTablaMat(mats, cargas) {
 }
 
 // ---------- wizard alta ----------
-function resetMatState() { matState = { step:1, carga:{}, compartida: false }; AÑOS.forEach(a => matState.carga[a] = { activo:false, bloques:0 }); }
+function resetMatState() { matState = { step:1, carga:{} }; AÑOS.forEach(a => matState.carga[a] = { activo:false, bloques:0 }); }
 
-function setCompartidaWiz(val) {
-  matState.compartida = val;
-  document.getElementById('btn-no-comp').classList.toggle('selected', !val);
-  document.getElementById('btn-si-comp').classList.toggle('selected',  val);
-  document.getElementById('comp-hint').textContent = val
-    ? 'Varios profesores dictan esta materia en simultáneo a grupos distintos (ej: Arte, Ed. Física).'
-    : 'Un único profesor dicta esta materia por curso.';
-
-  // Actualizar nombre automáticamente
-  const inputNombre = document.getElementById('m-nombre');
-  if (!inputNombre) return;
-  const SUFIJO = ' compartida';
-  let nombre = inputNombre.value.trim();
-  if (val && !nombre.endsWith(SUFIJO)) {
-    inputNombre.value = nombre + SUFIJO;
-  } else if (!val && nombre.endsWith(SUFIJO)) {
-    inputNombre.value = nombre.slice(0, -SUFIJO.length);
-  }
-}
 async function initWizardMat() { resetMatState(); renderStepsMat(); renderPanelMat(1); }
 
 function renderStepsMat() {
@@ -1447,18 +1462,6 @@ function renderPanelMat(step) {
           <option>Lengua y Literatura</option><option>Lenguas Extranjeras</option><option>Educación Física</option>
           <option>Arte</option><option>Formación Ética</option><option>Tecnología</option>
         </select>
-      </div>
-      <div class="field">
-        <label>¿Es una materia compartida?</label>
-        <div style="display:flex;gap:8px;margin-top:4px">
-          <button id="btn-no-comp" class="chip ${matState.compartida ? '' : 'selected'}" onclick="setCompartidaWiz(false)">No compartida</button>
-          <button id="btn-si-comp" class="chip ${matState.compartida ? 'selected' : ''}" onclick="setCompartidaWiz(true)">Compartida</button>
-        </div>
-        <p style="font-size:12px;color:var(--color-text-faint);margin-top:6px" id="comp-hint">
-          ${matState.compartida
-            ? 'Varios profesores dictan esta materia en simultáneo a grupos distintos (ej: Arte, Ed. Física).'
-            : 'Un único profesor dicta esta materia por curso.'}
-        </p>
       </div>
       <div class="btn-row"><span></span><button class="primary" onclick="avanzarMat2()">Siguiente <i class="ti ti-arrow-right"></i></button></div>`;
     if (matState.area) document.getElementById('m-area').value = matState.area;
@@ -1495,7 +1498,6 @@ function renderPanelMat(step) {
       <div class="summary-card">
         <div class="summary-row"><span class="summary-label">Materia</span><span class="summary-value">${matState.nombre||'—'}</span></div>
         <div class="summary-row"><span class="summary-label">Área</span><span class="summary-value">${matState.area||'Sin área'}</span></div>
-        <div class="summary-row"><span class="summary-label">Tipo</span><span class="summary-value">${matState.compartida ? 'Compartida' : 'No compartida'}</span></div>
         <div class="summary-row"><span class="summary-label">Carga horaria</span><span class="summary-value" style="font-size:12px">${carga}</span></div>
       </div>
       <div class="btn-row">
@@ -1511,7 +1513,7 @@ function renderPanelMat(step) {
 async function avanzarMat2() {
   matState.nombre = document.getElementById('m-nombre')?.value.trim() || '';
   matState.area   = document.getElementById('m-area')?.value || '';
-  // compartida ya está en matState desde setCompartidaWiz (o false por default)
+  // nombre y área ya están en matState desde avanzarMat2
   if (!matState.nombre) { showToast('Ingresá el nombre de la materia', 'err'); return; }
 
   // Verificar duplicados por nombre (case-insensitive)
@@ -1554,7 +1556,7 @@ function setBloquesAñoWiz(a, val) { matState.carga[a].bloques = parseInt(val) |
 
 async function guardarMateriaNueva() {
   try {
-    const mat = await apiPost('crear','materias',{ nombre: matState.nombre, area: matState.area, activa: true, compartida: matState.compartida || false });
+    const mat = await apiPost('crear','materias',{ nombre: matState.nombre, area: matState.area, activa: true });
     for (const a of AÑOS) {
       if (matState.carga[a].activo && matState.carga[a].bloques > 0)
         await apiPost('crear','carga_horaria',{ id_materia: mat.id, año: a, bloques_semanales: matState.carga[a].bloques, duracion_override_min:'' });
@@ -1572,10 +1574,11 @@ async function abrirFichaMat(id) {
   const cont = document.getElementById('mat-ficha');
   cont.innerHTML = '<div class="loading" style="padding:2rem"><div class="spinner"></div> Cargando ficha...</div>';
   try {
-    const [mats, cargas, matDocentes, profs, asignaciones, cursos] = await Promise.all([
+    const [mats, cargas, bloquesComp, bloquesCompDoc, profs, asignaciones, cursos] = await Promise.all([
       apiGet('leer','MATERIAS'),
       apiGet('leer','CARGA_HORARIA'),
-      apiGet('leer','MATERIA_DOCENTES'),
+      apiGet('leer','BLOQUES_COMPARTIDOS'),
+      apiGet('leer','BLOQUES_COMPARTIDOS_DOCENTES'),
       apiGet('leer','PROFESORES'),
       apiGet('leer','ASIGNACIONES'),
       apiGet('leer','CURSOS'),
@@ -1596,8 +1599,24 @@ async function abrirFichaMat(id) {
       }
     });
 
-    // Docentes asignados a esta materia compartida
-    const docentesMat = matDocentes.filter(d => String(d.id_materia) === String(mat.id));
+    // Bloques compartidos de esta materia, uno por año como máximo
+    const bloquesMat = bloquesComp.filter(b => String(b.id_materia) === String(mat.id));
+
+    // Estado editable: mapa año → { id_bloque, modulos_consecutivos, activo, profesores:[{id,id_profesor}] }
+    const compartidoEdit = {};
+    AÑOS.forEach(a => compartidoEdit[a] = { id_bloque: null, modulos_consecutivos: 0, activo: false, profesores: [] });
+    bloquesMat.forEach(b => {
+      const a = String(b.año);
+      if (compartidoEdit[a] !== undefined) {
+        const docs = bloquesCompDoc.filter(d => String(d.id_bloque_compartido) === String(b.id));
+        compartidoEdit[a] = {
+          id_bloque: b.id,
+          modulos_consecutivos: Number(b.modulos_consecutivos) || 0,
+          activo: true,
+          profesores: docs.map(d => ({ id: d.id, id_profesor: d.id_profesor })),
+        };
+      }
+    });
 
     // Asignaciones activas de esta materia → para la sección "Quién la da y en qué curso"
     const asigMat = asignaciones.filter(a =>
@@ -1606,9 +1625,9 @@ async function abrirFichaMat(id) {
 
     fichaMatState = {
       id: mat.id, nombre: mat.nombre||'', area: mat.area||'', activa,
-      compartida: isTruthy(mat.compartida), cargaEdit,
-      docentes: docentesMat,
-      docentesEliminados: [],
+      cargaEdit,
+      compartidoEdit,
+      compartidoDocEliminados: [],
       _profesores: profs.filter(p => isTruthy(p.activo)),
       _asigMat: asigMat,
       _cursos: cursos,
@@ -1637,39 +1656,17 @@ async function abrirFichaMat(id) {
               <option>Arte</option><option>Formación Ética</option><option>Tecnología</option>
             </select>
           </div>
-          <div class="field">
-            <label>Tipo de materia</label>
-            <div style="display:flex;gap:8px;margin-top:4px">
-              <button id="fi-btn-no-comp" class="chip ${fichaMatState.compartida ? '' : 'selected'}" onclick="setCompartidaFicha(false)">No compartida</button>
-              <button id="fi-btn-si-comp" class="chip ${fichaMatState.compartida ? 'selected' : ''}" onclick="setCompartidaFicha(true)">Compartida</button>
-            </div>
-            <p style="font-size:12px;color:var(--color-text-faint);margin-top:6px" id="fi-comp-hint">
-              ${fichaMatState.compartida
-                ? 'Varios profesores dictan esta materia en simultáneo a grupos distintos.'
-                : 'Un único profesor dicta esta materia por curso.'}
-            </p>
-          </div>
         </div>
 
-        <!-- SECCIÓN DOCENTES COMPARTIDOS -->
-        <div class="ficha-section" id="fi-docentes-section" style="display:${fichaMatState.compartida ? 'block' : 'none'}">
-          <div class="ficha-section-title">Docentes y grupos</div>
+        <!-- SECCIÓN BLOQUES COMPARTIDOS -->
+        <div class="ficha-section">
+          <div class="ficha-section-title">Bloques compartidos</div>
           <p style="font-size:12px;color:var(--color-text-muted);margin-bottom:12px">
-            Cada fila representa un profesor que dicta esta materia a un grupo específico.
+            Marcá los años en los que esta materia se dicta con varios profesores simultáneos
+            al nivel completo (todas las divisiones juntas, alumnos mezclados). Solo aparecen
+            los años donde la materia tiene carga horaria activa.
           </p>
-          <table style="width:100%;border-collapse:collapse;margin-bottom:10px" id="fi-docentes-tabla">
-            <thead>
-              <tr style="font-size:11px;color:var(--color-text-muted);border-bottom:0.5px solid var(--color-border)">
-                <th style="padding:6px 10px;text-align:left;font-weight:500">Profesor</th>
-                <th style="padding:6px 10px;text-align:left;font-weight:500">Descripción del grupo</th>
-                <th style="padding:6px 4px;width:32px"></th>
-              </tr>
-            </thead>
-            <tbody id="fi-docentes-tbody"></tbody>
-          </table>
-          <button onclick="agregarDocenteCompartido()" style="font-size:12px;padding:5px 12px">
-            <i class="ti ti-plus"></i> Agregar docente
-          </button>
+          <div id="fi-compartido-body"></div>
         </div>
 
         <div class="ficha-section">
@@ -1702,7 +1699,7 @@ async function abrirFichaMat(id) {
     renderCargaFichaBody();
 
     // Renderizar docentes compartidos
-    renderDocentesTbody();
+    renderCompartidoBody();
 
     // Renderizar asignaciones activas
     renderAsigMat();
@@ -1732,8 +1729,108 @@ function renderCargaFichaBody() {
 function toggleAñoFichaMat(a) {
   fichaMatState.cargaEdit[a].activo = !fichaMatState.cargaEdit[a].activo;
   renderCargaFichaBody();
+  renderCompartidoBody();
 }
 function setBloquesAñoFichaMat(a, val) { fichaMatState.cargaEdit[a].bloques = parseInt(val) || 0; }
+
+// ---- Bloques compartidos (por año) ----
+
+function renderCompartidoBody() {
+  const cont = document.getElementById('fi-compartido-body');
+  if (!cont) return;
+  const añosConCarga = AÑOS.filter(a => fichaMatState.cargaEdit[a].activo);
+
+  if (!añosConCarga.length) {
+    cont.innerHTML = `<p style="font-size:12px;color:var(--color-text-faint)">
+      Activá la materia en al menos un año (más abajo, en "Carga horaria por año") para poder marcarlo como bloque compartido.
+    </p>`;
+    return;
+  }
+
+  cont.innerHTML = añosConCarga.map(a => _renderCompartidoAño(a)).join('');
+}
+
+function _renderCompartidoAño(a) {
+  const st = fichaMatState.compartidoEdit[a];
+  return `<div style="border:0.5px solid var(--color-border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:10px;justify-content:space-between">
+      <span style="font-size:13px;font-weight:500">${a}° año</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:12px;color:var(--color-text-muted)">Módulos consecutivos</label>
+        <input type="number" min="1" max="10" value="${st.modulos_consecutivos||''}" placeholder="—"
+          style="width:56px;text-align:center" ${st.activo?'':'disabled'}
+          id="fc-modcons-${a}" onchange="setModConsecutivos('${a}',this.value)" />
+        <button class="btn-sm ${st.activo?'chip selected':'chip'}" onclick="toggleCompartidoAño('${a}')">
+          ${st.activo?'Bloque compartido':'No compartido'}
+        </button>
+      </div>
+    </div>
+    <div id="fc-profs-${a}" style="margin-top:10px;${st.activo?'':'display:none'}">
+      ${_renderCompartidoProfesores(a)}
+    </div>
+  </div>`;
+}
+
+function _renderCompartidoProfesores(a) {
+  const st = fichaMatState.compartidoEdit[a];
+  const filas = st.profesores.map(p => _renderCompartidoProfRow(a, p)).join('');
+  return `<table style="width:100%;border-collapse:collapse;margin-bottom:8px">
+      <tbody id="fc-profs-tbody-${a}">${filas}</tbody>
+    </table>
+    <button onclick="agregarCompartidoProf('${a}')" style="font-size:12px;padding:4px 10px">
+      <i class="ti ti-plus"></i> Agregar profesor
+    </button>`;
+}
+
+function _renderCompartidoProfRow(a, p) {
+  const idFila = p.id || p._tempId;
+  const profsOptions = fichaMatState._profesores.map(pr =>
+    `<option value="${pr.id}" ${String(pr.id) === String(p.id_profesor) ? 'selected' : ''}>${pr.apellido}, ${pr.nombre}</option>`
+  ).join('');
+  return `<tr data-fila-id="${idFila}">
+    <td style="padding:3px 6px">
+      <select style="width:100%;font-size:12px;padding:4px 8px" onchange="setCompartidoProf('${a}','${idFila}',this.value)">
+        <option value="">— Seleccioná un profesor —</option>
+        ${profsOptions}
+      </select>
+    </td>
+    <td style="padding:3px 4px;text-align:center;width:32px">
+      <button onclick="quitarCompartidoProf('${a}','${idFila}')"
+        style="padding:2px 6px;font-size:11px;color:var(--color-red-text)">
+        <i class="ti ti-trash"></i>
+      </button>
+    </td>
+  </tr>`;
+}
+
+function toggleCompartidoAño(a) {
+  fichaMatState.compartidoEdit[a].activo = !fichaMatState.compartidoEdit[a].activo;
+  renderCompartidoBody();
+}
+
+function setModConsecutivos(a, val) {
+  fichaMatState.compartidoEdit[a].modulos_consecutivos = parseInt(val) || 0;
+}
+
+function agregarCompartidoProf(a) {
+  const tempId = 'new_' + Date.now();
+  fichaMatState.compartidoEdit[a].profesores.push({ _tempId: tempId, id: tempId, id_profesor: '' });
+  renderCompartidoBody();
+}
+
+function setCompartidoProf(a, idFila, idProfesor) {
+  const fila = fichaMatState.compartidoEdit[a].profesores.find(p => String(p.id||p._tempId) === String(idFila));
+  if (fila) fila.id_profesor = idProfesor;
+}
+
+function quitarCompartidoProf(a, idFila) {
+  const st = fichaMatState.compartidoEdit[a];
+  if (!String(idFila).startsWith('new_')) {
+    fichaMatState.compartidoDocEliminados.push(idFila);
+  }
+  st.profesores = st.profesores.filter(p => String(p.id||p._tempId) !== String(idFila));
+  renderCompartidoBody();
+}
 
 function renderAsigMat() {
   const cont = document.getElementById('fi-asig-body');
@@ -1795,7 +1892,6 @@ function guardarFichaMat() {
       await apiPost('editar','materias', {
         nombre: document.getElementById('fi-mat-nombre')?.value.trim() || fichaMatState.nombre,
         area:       document.getElementById('fi-mat-area')?.value || '',
-        compartida: fichaMatState.compartida || false,
       }, fichaMatState.id);
 
       // 2. Sincronizar carga horaria año por año
@@ -1814,121 +1910,53 @@ function guardarFichaMat() {
         }
       }
 
-      // 3. Sincronizar docentes compartidos (solo si la materia es compartida)
-      if (fichaMatState.compartida) {
-        // Eliminar los marcados para borrar
-        for (const idDoc of fichaMatState.docentesEliminados) {
-          if (!String(idDoc).startsWith('new_')) {
-            await apiPost('eliminar','materia_docentes', {}, idDoc);
+      // 3. Sincronizar bloques compartidos, año por año
+      for (const a of AÑOS) {
+        const st = fichaMatState.compartidoEdit[a];
+        const modConsInput = parseInt(document.getElementById(`fc-modcons-${a}`)?.value) || st.modulos_consecutivos;
+
+        if (st.activo) {
+          // Crear o actualizar la fila de BLOQUES_COMPARTIDOS para este año
+          let idBloque = st.id_bloque;
+          if (idBloque) {
+            await apiPost('editar','bloques_compartidos', { modulos_consecutivos: modConsInput }, idBloque);
+          } else {
+            const creado = await apiPost('crear','bloques_compartidos', {
+              id_materia: fichaMatState.id, año: a, modulos_consecutivos: modConsInput, estado: 'borrador',
+            });
+            idBloque = creado.id;
           }
-        }
-        // Crear los nuevos (id empieza con 'new_')
-        const filas = document.querySelectorAll('#fi-docentes-tbody tr[data-doc-id]');
-        for (const fila of filas) {
-          const docId = fila.getAttribute('data-doc-id');
-          if (!String(docId).startsWith('new_')) continue; // los existentes no se tocan
-          const idProf = fila.querySelector('select')?.value;
-          const desc   = fila.querySelector('input')?.value.trim() || '';
-          if (!idProf) continue;
-          await apiPost('crear','materia_docentes', {
-            id_materia: fichaMatState.id,
-            id_profesor: idProf,
-            descripcion_grupo: desc,
-          });
-        }
-      } else {
-        // Si se cambió a "no compartida", eliminar todos los docentes existentes
-        for (const doc of fichaMatState.docentes) {
-          if (doc.id && !String(doc.id).startsWith('new_')) {
-            await apiPost('eliminar','materia_docentes', {}, doc.id);
+          // Eliminar los docentes marcados para borrar (de cualquier año)
+          for (const idDoc of fichaMatState.compartidoDocEliminados) {
+            await apiPost('eliminar','bloques_compartidos_docentes', {}, idDoc);
           }
+          fichaMatState.compartidoDocEliminados = [];
+          // Crear los profesores nuevos (id empieza con 'new_')
+          for (const p of st.profesores) {
+            if (!String(p.id).startsWith('new_')) continue;
+            if (!p.id_profesor) continue;
+            await apiPost('crear','bloques_compartidos_docentes', {
+              id_bloque_compartido: idBloque,
+              id_profesor: p.id_profesor,
+            });
+          }
+        } else if (st.id_bloque) {
+          // Se desactivó un año que antes era compartido: eliminar sus docentes y el bloque
+          for (const p of st.profesores) {
+            if (!String(p.id).startsWith('new_')) {
+              await apiPost('eliminar','bloques_compartidos_docentes', {}, p.id);
+            }
+          }
+          await apiPost('eliminar','bloques_compartidos', {}, st.id_bloque);
         }
       }
 
-      delete _cache['MATERIAS']; delete _cache['CARGA_HORARIA']; delete _cache['MATERIA_DOCENTES'];
+      delete _cache['MATERIAS']; delete _cache['CARGA_HORARIA'];
+      delete _cache['BLOQUES_COMPARTIDOS']; delete _cache['BLOQUES_COMPARTIDOS_DOCENTES'];
       showToast('Cambios guardados');
       volverListadoMat();
     } catch(e) { showToast('Error: ' + e.message, 'err'); }
   });
-}
-
-// ---- Docentes compartidos ----
-
-function renderDocentesTbody() {
-  const tbody = document.getElementById('fi-docentes-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = fichaMatState.docentes.map(d => _renderDocenteRow(d)).join('');
-}
-
-function _renderDocenteRow(d) {
-  const idDoc = d.id || d._tempId;
-  const profsOptions = fichaMatState._profesores.map(p =>
-    `<option value="${p.id}" ${String(p.id) === String(d.id_profesor) ? 'selected' : ''}>${p.apellido}, ${p.nombre}</option>`
-  ).join('');
-  return `<tr data-doc-id="${idDoc}">
-    <td style="padding:4px 6px">
-      <select style="width:100%;font-size:12px;padding:4px 8px">
-        <option value="">— Seleccioná un profesor —</option>
-        ${profsOptions}
-      </select>
-    </td>
-    <td style="padding:4px 6px">
-      <input type="text" value="${d.descripcion_grupo||''}" placeholder="Ej: Grupo A — 1° y 2° año"
-             style="font-size:12px;padding:4px 8px" />
-    </td>
-    <td style="padding:4px;text-align:center">
-      <button onclick="eliminarDocenteCompartido('${idDoc}')"
-              style="padding:2px 6px;font-size:11px;color:var(--color-red-text)">
-        <i class="ti ti-trash"></i>
-      </button>
-    </td>
-  </tr>`;
-}
-
-function agregarDocenteCompartido() {
-  const tempId = 'new_' + Date.now();
-  const nuevo = { _tempId: tempId, id: tempId, id_materia: fichaMatState.id, id_profesor: '', descripcion_grupo: '' };
-  fichaMatState.docentes.push(nuevo);
-  const tbody = document.getElementById('fi-docentes-tbody');
-  if (tbody) {
-    const tr = document.createElement('tr');
-    tr.setAttribute('data-doc-id', tempId);
-    tr.innerHTML = _renderDocenteRow(nuevo).replace(/^<tr[^>]*>/,'').replace(/<\/tr>$/,'');
-    tbody.appendChild(tr);
-  }
-}
-
-function eliminarDocenteCompartido(idDoc) {
-  // Si ya existía en Sheets, marcar para eliminar al guardar
-  if (!String(idDoc).startsWith('new_')) {
-    fichaMatState.docentesEliminados.push(idDoc);
-  }
-  fichaMatState.docentes = fichaMatState.docentes.filter(d =>
-    String(d.id || d._tempId) !== String(idDoc)
-  );
-  document.querySelector(`#fi-docentes-tbody tr[data-doc-id="${idDoc}"]`)?.remove();
-}
-
-function setCompartidaFicha(val) {
-  fichaMatState.compartida = val;
-  document.getElementById('fi-btn-no-comp').classList.toggle('selected', !val);
-  document.getElementById('fi-btn-si-comp').classList.toggle('selected',  val);
-
-  const SUFIJO = ' compartida';
-  const nombreActual = document.getElementById('fi-mat-nombre')?.value.trim() || '';
-  const necesitaSufijo  = val  && !nombreActual.endsWith(SUFIJO);
-  const sobranSufijo    = !val && nombreActual.endsWith(SUFIJO);
-  const aviso = necesitaSufijo
-    ? 'Varios profesores dictan esta materia en simultáneo. Recordá agregar " compartida" al nombre si corresponde.'
-    : sobranSufijo
-    ? 'Un único profesor dicta esta materia por curso. Recordá quitar " compartida" del nombre si corresponde.'
-    : val
-    ? 'Varios profesores dictan esta materia en simultáneo a grupos distintos.'
-    : 'Un único profesor dicta esta materia por curso.';
-
-  document.getElementById('fi-comp-hint').textContent = aviso;
-  const seccion = document.getElementById('fi-docentes-section');
-  if (seccion) seccion.style.display = val ? 'block' : 'none';
 }
 
 function confirmarBajaMat() {
@@ -2261,6 +2289,145 @@ async function wizCurGuardar() {
 }
 
 // ============================================================
+// PLAN DE ESTUDIOS
+// ============================================================
+let _planDatos = []; // filas ya calculadas: {curso, cursoLabel, año, materia, bloques, profesorLabel, sinAsignar}
+
+async function renderPlanEstudios() {
+  const wrap = document.getElementById('plan-tabla-wrap');
+  wrap.innerHTML = '<div class="loading" style="padding:1.5rem"><div class="spinner"></div> Cargando...</div>';
+  try {
+    const [cursos, mats, cargas, asigs, profs, bloquesComp, bloquesCompDoc] = await Promise.all([
+      apiGet('leer','CURSOS'),
+      apiGet('leer','MATERIAS'),
+      apiGet('leer','CARGA_HORARIA'),
+      apiGet('leer','ASIGNACIONES'),
+      apiGet('leer','PROFESORES'),
+      apiGet('leer','BLOQUES_COMPARTIDOS'),
+      apiGet('leer','BLOQUES_COMPARTIDOS_DOCENTES'),
+    ]);
+
+    const cursosActivos = cursos.filter(c => isTruthy(c.activo)).sort((a,b) =>
+      String(a.año).localeCompare(String(b.año)) || String(a.division).localeCompare(String(b.division))
+    );
+
+    const filas = [];
+    cursosActivos.forEach(curso => {
+      const cursoLabel = `${curso.año}° ${curso.division}`;
+      const cargasAño = cargas.filter(c => String(c.año) === String(curso.año));
+
+      cargasAño.forEach(carga => {
+        const mat = mats.find(m => String(m.id) === String(carga.id_materia));
+        if (!mat || !isTruthy(mat.activa)) return;
+
+        // ¿Es bloque compartido en este año?
+        const bloque = bloquesComp.find(b =>
+          String(b.id_materia) === String(mat.id) && String(b.año) === String(curso.año)
+        );
+
+        if (bloque) {
+          const docs = bloquesCompDoc.filter(d => String(d.id_bloque_compartido) === String(bloque.id));
+          const nombresProf = docs.map(d => {
+            const p = profs.find(pr => String(pr.id) === String(d.id_profesor));
+            return p ? `${p.apellido}, ${p.nombre}` : null;
+          }).filter(Boolean);
+          filas.push({
+            cursoLabel: `${curso.año}° (todas las divisiones)`,
+            _ordenCurso: `${curso.año}-0`, // agrupa antes que A/B/C individuales
+            materia: mat.nombre + ' (compartida)',
+            bloques: Number(bloque.modulos_consecutivos) || 0,
+            profesorLabel: nombresProf.length ? nombresProf.join(', ') : null,
+            sinAsignar: nombresProf.length === 0,
+          });
+        } else {
+          const asig = asigs.find(a =>
+            String(a.id_materia) === String(mat.id) &&
+            String(a.id_curso) === String(curso.id) &&
+            a.estado !== 'archivado'
+          );
+          const prof = asig ? profs.find(p => String(p.id) === String(asig.id_profesor)) : null;
+          filas.push({
+            cursoLabel,
+            _ordenCurso: `${curso.año}-${curso.division}`,
+            materia: mat.nombre,
+            bloques: Number(carga.bloques_semanales) || 0,
+            profesorLabel: prof ? `${prof.apellido}, ${prof.nombre}` : null,
+            sinAsignar: !prof,
+          });
+        }
+      });
+    });
+
+    // Bloques compartidos generan una fila por año, no por curso — deduplicar
+    const vistos = new Set();
+    _planDatos = filas.filter(f => {
+      if (!f.materia.endsWith('(compartida)')) return true;
+      const key = f._ordenCurso + '|' + f.materia;
+      if (vistos.has(key)) return false;
+      vistos.add(key);
+      return true;
+    }).sort((a,b) => a._ordenCurso.localeCompare(b._ordenCurso) || a.materia.localeCompare(b.materia,'es'));
+
+    _poblarFiltroCursoPlan(cursosActivos);
+    filtrarPlan();
+  } catch(e) {
+    wrap.innerHTML = `<p style="padding:1.5rem;color:var(--color-red-text)">Error: ${e.message}</p>`;
+  }
+}
+
+function _poblarFiltroCursoPlan(cursosActivos) {
+  const sel = document.getElementById('plan-f-curso');
+  const añoSel = document.getElementById('plan-f-año').value;
+  const opciones = cursosActivos
+    .filter(c => !añoSel || String(c.año) === añoSel)
+    .map(c => `<option value="${c.año}° ${c.division}">${c.año}° ${c.division}</option>`)
+    .join('');
+  sel.innerHTML = `<option value="">Todos los cursos</option>${opciones}`;
+}
+
+function onPlanFiltroAñoChange() {
+  // Al cambiar el año, repoblar el selector de curso para que solo muestre los de ese año
+  apiGet('leer','CURSOS').then(cursos => {
+    _poblarFiltroCursoPlan(cursos.filter(c => isTruthy(c.activo)));
+    filtrarPlan();
+  });
+}
+
+function filtrarPlan() {
+  const año   = document.getElementById('plan-f-año').value;
+  const curso = document.getElementById('plan-f-curso').value;
+
+  let lista = [..._planDatos];
+  if (curso) {
+    // Coincide tanto con divisiones individuales como con filas de "todas las divisiones" de ese año
+    const añoDeCurso = curso.split('°')[0];
+    lista = lista.filter(f => f.cursoLabel === curso || f.cursoLabel === `${añoDeCurso}° (todas las divisiones)`);
+  } else if (año) {
+    lista = lista.filter(f => f._ordenCurso.startsWith(año + '-'));
+  }
+
+  const wrap = document.getElementById('plan-tabla-wrap');
+  if (!lista.length) {
+    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-table"></i>No hay materias con carga horaria para este filtro.</div>`;
+    return;
+  }
+
+  const rows = lista.map(f => `<tr>
+    <td style="font-weight:500">${f.cursoLabel}</td>
+    <td>${f.materia}</td>
+    <td style="text-align:center">${f.bloques} bl/sem</td>
+    <td>${f.sinAsignar
+      ? '<span style="color:var(--color-red-text);font-weight:500">Sin asignar</span>'
+      : f.profesorLabel}</td>
+  </tr>`).join('');
+
+  wrap.innerHTML = `<table class="prof-table">
+    <thead><tr><th>Curso</th><th>Materia</th><th>Carga horaria</th><th>Profesor a cargo</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// ============================================================
 // REPORTE DE HORAS
 // ============================================================
 let _repDatos  = [];   // datos calculados — se recalculan solo al entrar a la sección
@@ -2270,12 +2437,14 @@ async function renderReporte() {
   const cont = document.getElementById('reporte-container');
   cont.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando reporte...</div>';
   try {
-    const [profs, mats, cursos, asigs, cargas] = await Promise.all([
+    const [profs, mats, cursos, asigs, cargas, bloquesComp, bloquesCompDoc] = await Promise.all([
       apiGet('leer','PROFESORES'),
       apiGet('leer','MATERIAS'),
       apiGet('leer','CURSOS'),
       apiGet('leer','ASIGNACIONES'),
       apiGet('leer','CARGA_HORARIA'),
+      apiGet('leer','BLOQUES_COMPARTIDOS'),
+      apiGet('leer','BLOQUES_COMPARTIDOS_DOCENTES'),
     ]);
 
     const esViewer = USUARIO.rol === 'viewer';
@@ -2300,6 +2469,22 @@ async function renderReporte() {
           estado:    a.estado || 'borrador',
         };
       });
+
+      // Sumar bloques compartidos donde este profesor participa
+      const idsBloquesProf = bloquesCompDoc
+        .filter(d => String(d.id_profesor) === String(p.id))
+        .map(d => d.id_bloque_compartido);
+      const bloquesProf = bloquesComp.filter(b => idsBloquesProf.includes(b.id));
+      bloquesProf.forEach(b => {
+        const mat = mats.find(m => String(m.id) === String(b.id_materia));
+        detalle.push({
+          matNombre: (mat?.nombre || `Materia #${b.id_materia}`) + ' (compartida)',
+          curLabel:  `${b.año}° año completo`,
+          bloques:   Number(b.modulos_consecutivos) || 0,
+          estado:    b.estado || 'borrador',
+        });
+      });
+
       const horasContrato = Number(p.horas_contrato) || 0;
       const unidad        = p.unidad_contrato === 'modulos' ? 'mód' : 'hs';
       return { p, detalle, horasContrato, unidad, esViewer };
