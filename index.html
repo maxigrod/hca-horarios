@@ -348,10 +348,10 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
           <option value="profesor">Ver por profesor</option>
         </select>
         <div id="filtro-curso" style="display:flex;gap:8px">
-          <select id="sel-año"><option>1° año</option><option>2° año</option><option>3° año</option><option>4° año</option><option>5° año</option><option>6° año</option></select>
-          <select id="sel-div"><option>División A</option><option>División B</option><option>División C</option></select>
+          <select id="sel-año"><option value="">Año...</option></select>
+          <select id="sel-div" onchange="buildHorario()"><option value="">División...</option></select>
         </div>
-        <div id="filtro-prof" style="display:none"><select id="sel-prof"></select></div>
+        <div id="filtro-prof" style="display:none"><select id="sel-prof" onchange="buildHorario()"><option value="">Profesor...</option></select></div>
         <div class="toolbar-sep"></div>
         <div class="mode-btn active" id="btn-consulta" onclick="setModo('consulta')">Consulta</div>
         <div class="mode-btn" id="btn-edicion" onclick="setModo('edicion')">Edición</div>
@@ -638,6 +638,7 @@ async function getBloques() {
     const academicos = todos.filter(b => b.tipo === 'academico').sort((a,b) => Number(a.numero) - Number(b.numero));
     if (academicos.length) {
       _bloquesCache = academicos.map(b => ({
+        id:    b.id,
         num:   Number(b.numero),
         label: b.numero + '°',
         hora:  _parsearHora(b.hora_inicio) + '–' + _parsearHora(b.hora_fin)
@@ -646,11 +647,11 @@ async function getBloques() {
     }
   } catch {}
   _bloquesCache = [
-    {num:1,label:'1°',hora:'8:15–8:55'},{num:2,label:'2°',hora:'8:55–9:35'},
-    {num:3,label:'3°',hora:'9:55–10:35'},{num:4,label:'4°',hora:'10:35–11:15'},
-    {num:5,label:'5°',hora:'12:30–13:05'},{num:6,label:'6°',hora:'13:05–13:40'},
-    {num:7,label:'7°',hora:'13:50–14:25'},{num:8,label:'8°',hora:'14:25–15:10'},
-    {num:9,label:'9°',hora:'15:20–15:55'},{num:10,label:'10°',hora:'15:55–16:30'},
+    {id:null,num:1,label:'1°',hora:'8:15–8:55'},{id:null,num:2,label:'2°',hora:'8:55–9:35'},
+    {id:null,num:3,label:'3°',hora:'9:55–10:35'},{id:null,num:4,label:'4°',hora:'10:35–11:15'},
+    {id:null,num:5,label:'5°',hora:'12:30–13:05'},{id:null,num:6,label:'6°',hora:'13:05–13:40'},
+    {id:null,num:7,label:'7°',hora:'13:50–14:25'},{id:null,num:8,label:'8°',hora:'14:25–15:10'},
+    {id:null,num:9,label:'9°',hora:'15:20–15:55'},{id:null,num:10,label:'10°',hora:'15:55–16:30'},
   ];
   return _bloquesCache;
 }
@@ -2997,16 +2998,123 @@ function abrirModalRegla() { showToast('Formulario de reglas — próximamente')
 // ============================================================
 // HORARIO
 // ============================================================
+let _horarioSelectsListos = false;
+
+async function _popularSelectsHorario() {
+  if (_horarioSelectsListos) return;
+  const [cursos, profesores] = await Promise.all([
+    apiGet('leer', 'CURSOS'),
+    apiGet('leer', 'PROFESORES'),
+  ]);
+
+  const cursosActivos = cursos.filter(c => isTruthy(c.activo));
+  const años = [...new Set(cursosActivos.map(c => Number(c.año)))].sort((a,b) => a-b);
+  const selAño = document.getElementById('sel-año');
+  selAño.innerHTML = '<option value="">Año...</option>' +
+    años.map(a => `<option value="${a}">${a}° año</option>`).join('');
+
+  const profesoresActivos = profesores
+    .filter(p => isTruthy(p.activo))
+    .sort((a,b) => `${a.apellido} ${a.nombre}`.localeCompare(`${b.apellido} ${b.nombre}`));
+  const selProf = document.getElementById('sel-prof');
+  selProf.innerHTML = '<option value="">Profesor...</option>' +
+    profesoresActivos.map(p => `<option value="${p.id}">${p.apellido}, ${p.nombre}</option>`).join('');
+
+  document.getElementById('sel-año').removeEventListener('change', _onCambioAñoHorario);
+  document.getElementById('sel-año').addEventListener('change', _onCambioAñoHorario);
+  _horarioSelectsListos = true;
+}
+
+async function _onCambioAñoHorario() {
+  await _actualizarDivisionesHorario();
+  buildHorario();
+}
+
+async function _actualizarDivisionesHorario() {
+  const cursos = await apiGet('leer', 'CURSOS');
+  const añoSel = document.getElementById('sel-año').value;
+  const selDiv = document.getElementById('sel-div');
+  const divisiones = cursos
+    .filter(c => isTruthy(c.activo) && String(Number(c.año)) === String(añoSel))
+    .map(c => c.division)
+    .sort();
+  selDiv.innerHTML = '<option value="">División...</option>' +
+    divisiones.map(d => `<option value="${d}">División ${d}</option>`).join('');
+}
+
 async function buildHorario() {
+  await _popularSelectsHorario();
+
   const bl = await getBloques();
+  const tipo = document.getElementById('vista-tipo').value;
+
+  let asignacionesFiltradas = [];
+  let idCurso = null;
+
+  if (tipo === 'curso') {
+    const año = document.getElementById('sel-año').value;
+    const div = document.getElementById('sel-div').value;
+    if (!año || !div) { _pintarHorarioVacio(bl); return; }
+    const cursos = await apiGet('leer', 'CURSOS');
+    const curso = cursos.find(c => String(Number(c.año)) === String(año) && c.division === div);
+    if (!curso) { _pintarHorarioVacio(bl); return; }
+    idCurso = curso.id;
+    const asignaciones = await apiGet('leer', 'ASIGNACIONES');
+    asignacionesFiltradas = asignaciones.filter(a => String(a.id_curso) === String(curso.id) && a.estado !== 'archivado');
+  } else {
+    const idProf = document.getElementById('sel-prof').value;
+    if (!idProf) { _pintarHorarioVacio(bl); return; }
+    const asignaciones = await apiGet('leer', 'ASIGNACIONES');
+    asignacionesFiltradas = asignaciones.filter(a => String(a.id_profesor) === String(idProf) && a.estado !== 'archivado');
+  }
+
+  const [materias, profesores, cursos] = await Promise.all([
+    apiGet('leer', 'MATERIAS'),
+    apiGet('leer', 'PROFESORES'),
+    apiGet('leer', 'CURSOS'),
+  ]);
+
+  const grilla = {};
+  DIAS.forEach(d => grilla[d] = {});
+  asignacionesFiltradas.forEach(a => {
+    if (!a.dia || !a.id_bloque_inicio) return; // sin horario asignado todavía (pendiente del CSP)
+    const bloqueInicio = bl.find(b => String(b.id) === String(a.id_bloque_inicio));
+    if (!bloqueInicio) return;
+    const cant = Number(a.cantidad_bloques) || 1;
+    for (let i = 0; i < cant; i++) {
+      const num = bloqueInicio.num + i;
+      grilla[a.dia] = grilla[a.dia] || {};
+      grilla[a.dia][num] = a;
+    }
+  });
+
+  document.getElementById('horario-body').innerHTML = bl.map(b => {
+    const celdas = DIAS.map(dia => {
+      const a = grilla[dia] && grilla[dia][b.num];
+      if (!a) return `<td><span style="color:var(--color-text-faint);font-size:11px">—</span></td>`;
+      const materia = materias.find(m => String(m.id) === String(a.id_materia));
+      const prof = profesores.find(p => String(p.id) === String(a.id_profesor));
+      const curso = cursos.find(c => String(c.id) === String(a.id_curso));
+      const nombreMateria = materia ? materia.nombre : '¿?';
+      const detalle = tipo === 'curso'
+        ? (prof ? `${prof.apellido}` : '')
+        : (curso ? `${curso.año}°${curso.division}` : '');
+      return `<td><span style="font-weight:500">${nombreMateria}</span><span style="font-size:10px;color:var(--color-text-muted);display:block">${detalle}</span></td>`;
+    }).join('');
+    return `<tr><td class="bloque-header"><span style="font-weight:500;color:var(--color-text-muted)">${b.label}</span><span style="font-size:10px;color:var(--color-text-faint);display:block">${b.hora}</span></td>${celdas}</tr>`;
+  }).join('');
+}
+
+function _pintarHorarioVacio(bl) {
   document.getElementById('horario-body').innerHTML = bl.map(b =>
-    `<tr><td class="bloque-header"><span style="font-weight:500;color:var(--color-text-muted)">${b.label}</span><span style="font-size:10px;color:var(--color-text-faint);display:block">${b.hora}</span></td>${['Lunes','Martes','Miércoles','Jueves','Viernes'].map(()=>`<td><span style="color:var(--color-text-faint);font-size:11px">—</span></td>`).join('')}</tr>`
+    `<tr><td class="bloque-header"><span style="font-weight:500;color:var(--color-text-muted)">${b.label}</span><span style="font-size:10px;color:var(--color-text-faint);display:block">${b.hora}</span></td>${DIAS.map(()=>`<td><span style="color:var(--color-text-faint);font-size:11px">—</span></td>`).join('')}</tr>`
   ).join('');
 }
 function onVistaCambio() {
   const tipo = document.getElementById('vista-tipo').value;
   document.getElementById('filtro-curso').style.display = tipo==='curso'    ? 'flex' : 'none';
   document.getElementById('filtro-prof').style.display  = tipo==='profesor' ? 'flex' : 'none';
+  buildHorario();
 }
 function setModo(modo) {
   document.getElementById('btn-consulta').classList.toggle('active', modo==='consulta');
