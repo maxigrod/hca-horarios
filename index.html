@@ -510,6 +510,20 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
   </div>
 </div>
 
+<!-- MODAL REPARTO / CO-DOCENCIA -->
+<div class="modal-overlay hidden" id="modal-reparto">
+  <div class="modal-box" style="max-width:520px">
+    <p class="modal-title">Esta materia ya tiene otro profesor</p>
+    <p class="modal-sub" id="reparto-sub"></p>
+    <div id="reparto-cuerpo"></div>
+    <p id="reparto-error" style="color:var(--color-red-text);font-size:13px;margin-top:8px;display:none"></p>
+    <div class="modal-actions">
+      <button onclick="cerrarModalReparto()">Cancelar</button>
+      <button class="primary" onclick="confirmarModalReparto()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============================================================
 // CONFIG
@@ -1002,9 +1016,10 @@ async function abrirFichaProf(id) {
   const cont = document.getElementById('prof-ficha');
   cont.innerHTML = '<div class="loading" style="padding:2rem"><div class="spinner"></div> Cargando ficha...</div>';
   try {
-    const [profs, mats, bl, asigs, cursos] = await Promise.all([
+    const [profs, mats, bl, asigs, cursos, bloquesComp, bloquesCompDoc] = await Promise.all([
       apiGet('leer','PROFESORES'), apiGet('leer','MATERIAS'), getBloques(),
-      apiGet('leer','ASIGNACIONES'), apiGet('leer','CURSOS')
+      apiGet('leer','ASIGNACIONES'), apiGet('leer','CURSOS'),
+      apiGet('leer','BLOQUES_COMPARTIDOS'), apiGet('leer','BLOQUES_COMPARTIDOS_DOCENTES')
     ]);
     const prof = profs.find(p => String(p.id) === String(id));
     if (!prof) throw new Error('Profesor no encontrado');
@@ -1017,6 +1032,19 @@ async function abrirFichaProf(id) {
     // Asignaciones actuales de este profesor
     const asigProf = asigs.filter(a => String(a.id_profesor) === String(prof.id) && a.estado !== 'archivado');
 
+    // Bloques compartidos donde este profesor participa (solo lectura — se editan desde Materias)
+    const idsBloquesProf = bloquesCompDoc
+      .filter(d => String(d.id_profesor) === String(prof.id))
+      .map(d => d.id_bloque_compartido);
+    const bloquesCompProf = bloquesComp
+      .filter(b => idsBloquesProf.includes(b.id))
+      .map(b => ({
+        matNombre: mats.find(m => String(m.id) === String(b.id_materia))?.nombre || `Materia #${b.id_materia}`,
+        año: b.año,
+        modulos: Number(b.modulos_consecutivos) || 0,
+        estado: b.estado || 'borrador',
+      }));
+
     fichaState = {
       id: prof.id, apellido: prof.apellido||'', nombre: prof.nombre||'', email: prof.email||'',
       horas_contrato: prof.horas_contrato||'', unidad_contrato: prof.unidad_contrato||'horas_reloj',
@@ -1026,8 +1054,10 @@ async function abrirFichaProf(id) {
       asignaciones: asigProf,
       _asigAgregadas: [],   // {id_materia, id_curso} — pendientes de crear
       _asigQuitadas:  [],   // ids de ASIGNACIONES a eliminar
+      _reclasificaciones: [], // {idAsig, tipo_reparto, modulos_asignados} — filas de OTROS profesores a reclasificar, pendientes de guardar
       _mats: mats,
       _cursos: cursos,
+      _profesoresCache: profs,
     };
 
     const nombresMats = mats.filter(m => isTruthy(m.activa)).map(m => m.nombre);
@@ -1080,6 +1110,21 @@ async function abrirFichaProf(id) {
         </div>
 
         <div class="ficha-section">
+          <div class="ficha-section-title">Bloques compartidos asignados</div>
+          <p style="font-size:12px;color:var(--color-text-muted);margin-bottom:12px">Materias que este profesor dicta junto con otros, a nivel de año completo. Se editan desde la ficha de la materia.</p>
+          ${bloquesCompProf.length === 0
+            ? `<p style="font-size:13px;color:var(--color-text-faint)">Sin bloques compartidos asignados.</p>`
+            : bloquesCompProf.map(b => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--color-border);border-radius:8px;margin-bottom:8px">
+                  <div>
+                    <strong>${b.matNombre}</strong> — ${b.año}° año completo
+                    <div style="font-size:12px;color:var(--color-text-muted)">${b.modulos} módulos consecutivos · ${b.estado}</div>
+                  </div>
+                </div>`).join('')
+          }
+        </div>
+
+        <div class="ficha-section">
           <div class="ficha-section-title">Asignaciones (materia × curso)</div>
           <p style="font-size:12px;color:var(--color-text-muted);margin-bottom:12px">Define en qué cursos dicta cada materia. El motor CSP usará esto para armar el horario.</p>
           <div id="asig-tabla" style="margin-bottom:14px"></div>
@@ -1100,8 +1145,21 @@ async function abrirFichaProf(id) {
                 <option value="">— elegí una materia primero —</option>
               </select>
             </div>
+            <div class="field" style="margin-bottom:0;min-width:150px">
+              <label>Tipo</label>
+              <select id="asig-tipo-sel" onchange="onAsigTipoSelCambio()">
+                <option value="completo">Completo</option>
+                <option value="parcial">Reparto parcial</option>
+                <option value="codocencia">Co-docencia</option>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0;min-width:110px;display:none" id="asig-mod-wrap">
+              <label>Módulos</label>
+              <input type="number" min="1" id="asig-mod-input" placeholder="ej: 2" />
+            </div>
             <button onclick="agregarAsignacionProf()" style="flex-shrink:0"><i class="ti ti-plus"></i> Agregar</button>
           </div>
+          <p style="font-size:12px;color:var(--color-text-faint);margin-top:8px">Si esta materia y curso ya tienen otro profesor asignado, vas a poder revisar y ajustar el reparto entre ambos antes de confirmar.</p>
         </div>
 
         <div class="ficha-section">
@@ -1167,8 +1225,11 @@ function renderAsignacionesProf() {
     const cur = fichaState._cursos?.find(c => String(c.id) === String(a.id_curso));
     const matLabel = mat ? mat.nombre : `Materia #${a.id_materia}`;
     const curLabel = cur ? `${cur.año}° ${cur.division}${cur.nombre_personalizado?' — '+cur.nombre_personalizado:''}` : `Curso #${a.id_curso}`;
+    let sufijo = '';
+    if (a.tipo_reparto === 'parcial')   sufijo = ` <span style="color:var(--color-text-muted);font-size:12px">(reparto: ${a.modulos_asignados || '?'} mód.)</span>`;
+    if (a.tipo_reparto === 'codocencia') sufijo = ` <span style="color:var(--color-text-muted);font-size:12px">(co-docencia)</span>`;
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:var(--radius);border:0.5px solid var(--color-border);margin-bottom:6px;font-size:13px">
-      <span><span style="font-weight:500">${matLabel}</span> <span style="color:var(--color-text-muted)">→</span> <span>${curLabel}</span></span>
+      <span><span style="font-weight:500">${matLabel}</span> <span style="color:var(--color-text-muted)">→</span> <span>${curLabel}</span>${sufijo}</span>
       <button onclick="quitarAsignacionProf('${a.id}')" style="padding:3px 8px;font-size:11px;color:var(--color-red-text);border-color:#e8a0a0"><i class="ti ti-x"></i> Quitar</button>
     </div>`;
   }).join('');
@@ -1200,27 +1261,219 @@ function onAsigMatCambio() {
   curSel.disabled = false;
 }
 
+function onAsigTipoSelCambio() {
+  const tipo = document.getElementById('asig-tipo-sel')?.value;
+  const wrap = document.getElementById('asig-mod-wrap');
+  if (wrap) wrap.style.display = (tipo === 'parcial') ? '' : 'none';
+}
+
 async function agregarAsignacionProf() {
   const idMat = document.getElementById('asig-mat-sel')?.value;
   const idCur = document.getElementById('asig-cur-sel')?.value;
+  const tipoSel = document.getElementById('asig-tipo-sel')?.value || 'completo';
+  const modInput = document.getElementById('asig-mod-input')?.value || '';
   if (!idMat) { showToast('Elegí una materia', 'err'); return; }
   if (!idCur) { showToast('Elegí un curso', 'err'); return; }
+  if (tipoSel === 'parcial' && (!modInput || Number(modInput) <= 0)) {
+    showToast('Ingresá la cantidad de módulos', 'err'); return;
+  }
 
   const dup = (fichaState.asignaciones || []).find(a =>
     String(a.id_materia) === String(idMat) && String(a.id_curso) === String(idCur)
   );
   if (dup) { showToast('Esa asignación ya existe', 'err'); return; }
 
+  let reparto;
+  try {
+    reparto = await consultarReparto(idMat, idCur);
+  } catch(e) { showToast('Error consultando reparto: ' + e.message, 'err'); return; }
+
+  if (reparto.filasExistentes.length === 0) {
+    // Único profesor hasta ahora: se respeta lo elegido en el selector individual,
+    // sin validar suma todavía (no hay con qué comparar). Se valida cuando se agregue un segundo.
+    _agregarAsignacionProfFinal(idMat, idCur, tipoSel, tipoSel === 'parcial' ? modInput : '');
+    return;
+  }
+
+  // Ya hay otro(s) profesor(es): siempre pasa por el modal de conciliación,
+  // sin importar lo elegido en el selector individual — ahí se ajusta la suma real.
+  abrirModalReparto(idMat, idCur, reparto, tipoSel, modInput);
+}
+
+function _agregarAsignacionProfFinal(idMat, idCur, tipoReparto, modulosAsignados) {
   // Solo en memoria — se guarda al hacer "Guardar cambios"
   const tempId = 'new_' + Date.now();
-  fichaState.asignaciones.push({ id: tempId, id_profesor: fichaState.id, id_materia: idMat, id_curso: idCur, estado: 'borrador' });
-  fichaState._asigAgregadas.push({ id_materia: idMat, id_curso: idCur });
+  fichaState.asignaciones.push({
+    id: tempId, id_profesor: fichaState.id, id_materia: idMat, id_curso: idCur,
+    estado: 'borrador', tipo_reparto: tipoReparto, modulos_asignados: modulosAsignados
+  });
+  fichaState._asigAgregadas.push({
+    id_materia: idMat, id_curso: idCur, tipo_reparto: tipoReparto, modulos_asignados: modulosAsignados
+  });
 
   renderAsignacionesProf();
   document.getElementById('asig-mat-sel').value = '';
   document.getElementById('asig-cur-sel').innerHTML = '<option value="">— elegí una materia primero —</option>';
   document.getElementById('asig-cur-sel').disabled = true;
+  document.getElementById('asig-tipo-sel').value = 'completo';
+  document.getElementById('asig-mod-input').value = '';
+  onAsigTipoSelCambio();
 }
+
+async function consultarReparto(idMat, idCur) {
+  const url = `${API_URL}?accion=reparto&id_materia=${idMat}&id_curso=${idCur}`;
+  const res  = await fetch(url);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error);
+  return json.data;
+}
+
+// ============================================================
+// MODAL REPARTO / CO-DOCENCIA
+// ============================================================
+let _repartoState = null;
+
+function abrirModalReparto(idMat, idCur, reparto, tipoPrecargado, modulosPrecargados) {
+  const mat = fichaState._mats.find(m => String(m.id) === String(idMat));
+  const cur = fichaState._cursos.find(c => String(c.id) === String(idCur));
+  const matNombre = mat?.nombre || `Materia #${idMat}`;
+  const curLabel  = cur ? `${cur.año}° ${cur.division}` : `Curso #${idCur}`;
+
+  _repartoState = {
+    idMat, idCur, reparto,
+    // una entrada por cada fila existente que haya que reclasificar (si sigue en 'completo'),
+    // más la nueva asignación de este profesor
+    filas: reparto.filasExistentes.map(f => ({
+      esNueva: false, idAsig: f.id, idProfesor: f.id_profesor,
+      tipo: f.tipo_reparto, modulos: f.modulos_asignados || ''
+    })).concat([{
+      esNueva: true, idAsig: null, idProfesor: fichaState.id,
+      // Se precarga lo elegido en el selector individual, pero sigue siendo editable acá —
+      // el modal es el punto donde se concilia la suma real entre todos.
+      tipo: tipoPrecargado || '', modulos: (tipoPrecargado === 'parcial' ? modulosPrecargados : '') || ''
+    }])
+  };
+
+  document.getElementById('reparto-sub').textContent =
+    `${matNombre} → ${curLabel} ya tiene profesor(es) asignados. Definí cómo se reparte esta materia.`;
+  renderCuerpoReparto();
+  document.getElementById('reparto-error').style.display = 'none';
+  document.getElementById('modal-reparto').classList.remove('hidden');
+}
+
+function cerrarModalReparto() {
+  document.getElementById('modal-reparto').classList.add('hidden');
+  _repartoState = null;
+}
+
+function _nombreProfReparto(idProfesor) {
+  if (String(idProfesor) === String(fichaState.id)) {
+    return `${fichaState.apellido}, ${fichaState.nombre} (este profesor)`;
+  }
+  const p = (fichaState._profesoresCache || []).find(pr => String(pr.id) === String(idProfesor));
+  return p ? `${p.apellido}, ${p.nombre}` : `Profesor #${idProfesor}`;
+}
+
+function renderCuerpoReparto() {
+  const cont = document.getElementById('reparto-cuerpo');
+  cont.innerHTML = _repartoState.filas.map((f, i) => `
+    <div style="border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;margin-top:10px">
+      <div style="font-weight:500;margin-bottom:6px">${_nombreProfReparto(f.idProfesor)}</div>
+      <div class="field-row">
+        <div class="field" style="margin-bottom:0">
+          <label>Tipo</label>
+          <select onchange="onTipoRepartoChange(${i}, this.value)">
+            <option value="">— elegí —</option>
+            <option value="completo" ${f.tipo==='completo'?'selected':''}>Completo</option>
+            <option value="parcial" ${f.tipo==='parcial'?'selected':''}>Reparto parcial</option>
+            <option value="codocencia" ${f.tipo==='codocencia'?'selected':''}>Co-docencia</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0" id="reparto-mod-wrap-${i}">
+          ${f.tipo === 'parcial' ? `
+            <label>Módulos</label>
+            <input type="number" min="1" value="${f.modulos}" oninput="onModulosRepartoChange(${i}, this.value)" />
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('') + `
+    <p style="font-size:12px;color:var(--color-text-muted);margin-top:10px">
+      Carga horaria total de la materia: ${_repartoState.reparto.totalModulos} módulos semanales.
+    </p>`;
+}
+
+function onTipoRepartoChange(i, val) {
+  _repartoState.filas[i].tipo = val;
+  if (val !== 'parcial') _repartoState.filas[i].modulos = '';
+  renderCuerpoReparto();
+}
+
+function onModulosRepartoChange(i, val) {
+  _repartoState.filas[i].modulos = val;
+}
+
+function confirmarModalReparto() {
+  const errBox = document.getElementById('reparto-error');
+  errBox.style.display = 'none';
+
+  const { filas, reparto } = _repartoState;
+
+  if (filas.some(f => !f.tipo)) {
+    errBox.textContent = 'Elegí un tipo para cada profesor.';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  // No tiene sentido mezclar 'codocencia' con 'parcial' en la misma materia+curso
+  const tipos = new Set(filas.map(f => f.tipo));
+  if (tipos.has('codocencia') && tipos.has('parcial')) {
+    errBox.textContent = 'No se puede combinar co-docencia con reparto parcial en la misma materia y curso.';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  // Si hay reparto parcial, la suma de todas las filas parciales debe ser exactamente el total
+  if (tipos.has('parcial')) {
+    const parciales = filas.filter(f => f.tipo === 'parcial');
+    if (filas.some(f => f.tipo !== 'parcial')) {
+      errBox.textContent = 'Si una fila es reparto parcial, todas las filas de esta materia y curso deben serlo.';
+      errBox.style.display = 'block';
+      return;
+    }
+    const suma = parciales.reduce((s, f) => s + (Number(f.modulos) || 0), 0);
+    if (parciales.some(f => !f.modulos || Number(f.modulos) <= 0)) {
+      errBox.textContent = 'Ingresá los módulos de cada profesor (mayor a 0).';
+      errBox.style.display = 'block';
+      return;
+    }
+    if (suma !== reparto.totalModulos) {
+      errBox.textContent = `La suma de módulos (${suma}) debe ser igual al total de la materia (${reparto.totalModulos}).`;
+      errBox.style.display = 'block';
+      return;
+    }
+  }
+
+  // Todo OK: aplicar
+  const nueva = filas.find(f => f.esNueva);
+  _agregarAsignacionProfFinal(_repartoState.idMat, _repartoState.idCur, nueva.tipo, nueva.modulos || '');
+
+  // Las filas existentes que cambiaron de tipo quedan pendientes de guardar
+  filas.filter(f => !f.esNueva).forEach(f => {
+    const original = reparto.filasExistentes.find(o => String(o.id) === String(f.idAsig));
+    const cambioTipo = original.tipo_reparto !== f.tipo;
+    const cambioMod  = String(original.modulos_asignados || '') !== String(f.modulos || '');
+    if (cambioTipo || cambioMod) {
+      fichaState._reclasificaciones.push({
+        idAsig: f.idAsig, tipo_reparto: f.tipo, modulos_asignados: f.modulos || ''
+      });
+    }
+  });
+
+  cerrarModalReparto();
+}
+
+
 
 async function quitarAsignacionProf(idAsig) {
   const asig = fichaState.asignaciones.find(a => String(a.id) === String(idAsig));
@@ -1285,7 +1538,17 @@ function guardarFichaProf() {
           id_materia:  a.id_materia,
           id_curso:    a.id_curso,
           estado:      'borrador',
+          tipo_reparto: a.tipo_reparto || 'completo',
+          modulos_asignados: a.modulos_asignados || '',
         });
+      }
+
+      // 4. Reclasificar asignaciones de OTROS profesores (detectado en el modal de reparto/co-docencia)
+      for (const r of fichaState._reclasificaciones) {
+        await apiPost('editar','asignaciones', {
+          tipo_reparto: r.tipo_reparto,
+          modulos_asignados: r.modulos_asignados,
+        }, r.idAsig);
       }
 
       delete _cache['PROFESORES'];
@@ -2341,19 +2604,38 @@ async function renderPlanEstudios() {
             sinAsignar: nombresProf.length === 0,
           });
         } else {
-          const asig = asigs.find(a =>
+          const asigsCurso = asigs.filter(a =>
             String(a.id_materia) === String(mat.id) &&
             String(a.id_curso) === String(curso.id) &&
             a.estado !== 'archivado'
           );
-          const prof = asig ? profs.find(p => String(p.id) === String(asig.id_profesor)) : null;
+
+          let profesorLabel = null;
+          if (asigsCurso.length === 1) {
+            const prof = profs.find(p => String(p.id) === String(asigsCurso[0].id_profesor));
+            profesorLabel = prof ? `${prof.apellido}, ${prof.nombre}` : null;
+          } else if (asigsCurso.length > 1) {
+            const partes = asigsCurso.map(a => {
+              const prof = profs.find(p => String(p.id) === String(a.id_profesor));
+              const nombre = prof ? `${prof.apellido}, ${prof.nombre}` : `Profesor #${a.id_profesor}`;
+              if (a.tipo_reparto === 'parcial') {
+                return `${nombre} (${Number(a.modulos_asignados) || 0} mód.)`;
+              }
+              if (a.tipo_reparto === 'codocencia') {
+                return `${nombre} (co-docencia)`;
+              }
+              return nombre; // fila mal clasificada como 'completo' habiendo más de una — se muestra igual, sin ocultar el dato
+            });
+            profesorLabel = partes.join(' + ');
+          }
+
           filas.push({
             cursoLabel,
             _ordenCurso: `${curso.año}-${curso.division}`,
             materia: mat.nombre,
             bloques: Number(carga.bloques_semanales) || 0,
-            profesorLabel: prof ? `${prof.apellido}, ${prof.nombre}` : null,
-            sinAsignar: !prof,
+            profesorLabel,
+            sinAsignar: asigsCurso.length === 0,
           });
         }
       });
@@ -2463,10 +2745,17 @@ async function renderReporte() {
           String(c.id_materia) === String(a.id_materia) &&
           String(c.año) === String(curso?.año)
         );
+        const totalMat = Number(carga?.bloques_semanales) || 0;
+        // Reparto parcial: este profesor solo carga sus propios módulos, no el total de la materia.
+        // Completo y co-docencia usan el total (co-docencia porque ambos dan las mismas horas juntos).
+        const bloques = a.tipo_reparto === 'parcial' ? (Number(a.modulos_asignados) || 0) : totalMat;
+        let sufijo = '';
+        if (a.tipo_reparto === 'parcial')    sufijo = ' (reparto)';
+        if (a.tipo_reparto === 'codocencia') sufijo = ' (co-docencia)';
         return {
-          matNombre: mat?.nombre || `Materia #${a.id_materia}`,
+          matNombre: (mat?.nombre || `Materia #${a.id_materia}`) + sufijo,
           curLabel:  curso ? `${curso.año}° ${curso.division}` : `Curso #${a.id_curso}`,
-          bloques:   Number(carga?.bloques_semanales) || 0,
+          bloques,
           estado:    a.estado || 'borrador',
         };
       });
