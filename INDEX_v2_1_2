@@ -1,0 +1,3712 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HCA Horarios — Secundaria</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --sidebar-w: 220px;
+  --topbar-h: 48px;
+  --color-bg: #f5f5f3;
+  --color-surface: #ffffff;
+  --color-border: rgba(0,0,0,0.1);
+  --color-border-strong: rgba(0,0,0,0.2);
+  --color-text: #1a1a1a;
+  --color-text-muted: #666;
+  --color-text-faint: #999;
+  --color-blue-bg: #E6F1FB;
+  --color-blue-text: #0C447C;
+  --color-blue-border: #85B7EB;
+  --color-green-bg: #EAF3DE;
+  --color-green-text: #27500A;
+  --color-red-bg: #FCEBEB;
+  --color-red-text: #791F1F;
+  --color-amber-bg: #FAEEDA;
+  --color-amber-text: #633806;
+  --color-purple-bg: #EEEDFE;
+  --color-purple-text: #3C3489;
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+body { font-family: system-ui, -apple-system, sans-serif; background: var(--color-bg); color: var(--color-text); font-size: 14px; line-height: 1.5; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; font-size: 13px; cursor: pointer; border: 0.5px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text); padding: 6px 14px; border-radius: var(--radius); transition: background 0.15s; }
+button:hover { background: #f0f0ee; }
+button.primary { background: var(--color-blue-bg); border-color: var(--color-blue-border); color: var(--color-blue-text); font-weight: 500; }
+button.primary:hover { background: #d4e8f7; }
+button.danger { background: var(--color-red-bg); border-color: #e8a0a0; color: var(--color-red-text); }
+button.danger:hover { background: #f5d5d5; }
+input, select, textarea { font-family: inherit; font-size: 13px; color: var(--color-text); border: 0.5px solid var(--color-border-strong); border-radius: var(--radius); padding: 7px 10px; width: 100%; background: var(--color-surface); }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--color-blue-border); }
+label { font-size: 12px; color: var(--color-text-muted); display: block; margin-bottom: 5px; }
+
+/* LAYOUT */
+.app { display: grid; grid-template-columns: var(--sidebar-w) 1fr; grid-template-rows: var(--topbar-h) 1fr; height: 100vh; }
+.topbar { grid-column: 1/3; background: var(--color-surface); border-bottom: 0.5px solid var(--color-border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 10; }
+.topbar-brand { font-size: 13px; font-weight: 500; }
+.topbar-brand span { color: var(--color-text-muted); font-weight: 400; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.user-pill { display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 20px; border: 0.5px solid var(--color-border); font-size: 12px; color: var(--color-text-muted); }
+.user-avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--color-blue-bg); color: var(--color-blue-text); font-size: 10px; font-weight: 500; display: flex; align-items: center; justify-content: center; }
+.badge { font-size: 11px; padding: 2px 7px; border-radius: 20px; }
+.badge-admin    { background: var(--color-green-bg);  color: var(--color-green-text); }
+.badge-editor   { background: var(--color-blue-bg);   color: var(--color-blue-text); }
+.badge-viewer   { background: #f0f0ee; color: var(--color-text-muted); }
+.badge-inactivo { background: #f0f0ee; color: var(--color-text-faint); }
+.conn-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; }
+.conn-dot.ok  { background: #1D9E75; }
+.conn-dot.err { background: #E24B4A; }
+
+/* SIDEBAR */
+.sidebar { background: var(--color-surface); border-right: 0.5px solid var(--color-border); padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.nav-group-label { font-size: 11px; color: var(--color-text-faint); padding: 10px 8px 4px; letter-spacing: 0.05em; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: var(--radius); cursor: pointer; font-size: 13px; color: var(--color-text-muted); transition: all 0.15s; border: none; background: none; width: 100%; text-align: left; }
+.nav-item:hover { background: var(--color-bg); color: var(--color-text); }
+.nav-item.active { background: var(--color-blue-bg); color: var(--color-blue-text); }
+.nav-item i { font-size: 17px; flex-shrink: 0; }
+.nav-divider { height: 0.5px; background: var(--color-border); margin: 6px 0; }
+
+/* MAIN */
+.main { overflow-y: auto; padding: 24px; }
+.section { display: none; }
+.section.active { display: block; }
+.page-title { font-size: 18px; font-weight: 500; margin-bottom: 4px; }
+.page-sub { font-size: 13px; color: var(--color-text-muted); margin-bottom: 1.5rem; }
+
+/* CARDS */
+.card { background: var(--color-surface); border: 0.5px solid var(--color-border); border-radius: var(--radius-lg); padding: 16px 20px; }
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+.metric { background: var(--color-bg); border-radius: var(--radius); padding: 14px; }
+.metric-label { font-size: 12px; color: var(--color-text-faint); margin-bottom: 6px; }
+.metric-value { font-size: 24px; font-weight: 500; }
+.status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.status-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 0.5px solid var(--color-border); font-size: 13px; }
+.status-row:last-child { border-bottom: none; }
+.status-label { color: var(--color-text-muted); }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.dot-ok   { background: #1D9E75; }
+.dot-warn { background: #BA7517; }
+.dot-err  { background: #E24B4A; }
+
+/* FORMULARIOS */
+.wizard { max-width: 620px; }
+.steps { display: flex; align-items: center; margin-bottom: 2rem; }
+.step-dot { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+.step-dot .dot-circle { width: 28px; height: 28px; border-radius: 50%; border: 0.5px solid var(--color-border-strong); background: var(--color-surface); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--color-text-muted); }
+.step-dot.active .dot-circle { background: var(--color-blue-bg); border-color: var(--color-blue-border); color: var(--color-blue-text); font-weight: 500; }
+.step-dot.done .dot-circle   { background: var(--color-green-bg); border-color: #5DCAA5; color: var(--color-green-text); }
+.step-dot .step-label { font-size: 11px; color: var(--color-text-faint); }
+.step-line { flex: 1; height: 0.5px; background: var(--color-border); margin-bottom: 18px; max-width: 40px; }
+.panel-title { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+.panel-sub   { font-size: 13px; color: var(--color-text-muted); margin-bottom: 1.25rem; }
+.field { margin-bottom: 1rem; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; }
+.btn-back { background: none; border: none; color: var(--color-text-muted); font-size: 13px; cursor: pointer; padding: 0; }
+.btn-back:hover { color: var(--color-text); }
+.materias-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { padding: 5px 12px; border-radius: 20px; border: 0.5px solid var(--color-border-strong); font-size: 13px; color: var(--color-text-muted); cursor: pointer; background: var(--color-surface); user-select: none; }
+.chip:hover { border-color: var(--color-blue-border); }
+.chip.selected { background: var(--color-blue-bg); border-color: var(--color-blue-border); color: var(--color-blue-text); }
+.disp-table { border-collapse: collapse; width: 100%; }
+.disp-table th { font-size: 12px; font-weight: 500; color: var(--color-text-muted); padding: 6px 4px; text-align: center; border-bottom: 0.5px solid var(--color-border); }
+.disp-table th.blq-col { text-align: left; }
+.disp-table td { padding: 3px 4px; text-align: center; }
+.disp-table .blq-label { font-size: 12px; color: var(--color-text-muted); text-align: left; padding-right: 8px; white-space: nowrap; }
+.disp-table .hora-label { font-size: 10px; color: var(--color-text-faint); display: block; }
+.disp-cell { width: 26px; height: 26px; border-radius: 5px; border: 0.5px solid #E24B4A; background: var(--color-red-bg); cursor: pointer; margin: 0 auto; transition: all 0.1s; }
+.disp-cell.on { background: var(--color-green-bg); border-color: #5DCAA5; }
+.legend { display: flex; gap: 16px; margin-top: 10px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-muted); }
+.legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+.legend-dot.on  { background: var(--color-green-bg); border: 0.5px solid #5DCAA5; }
+.legend-dot.off { background: var(--color-red-bg);   border: 0.5px solid #E24B4A; }
+.select-all-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.btn-sm { font-size: 12px; padding: 4px 10px; border-radius: 20px; }
+.summary-card { background: var(--color-bg); border-radius: var(--radius); padding: 14px; margin-bottom: 1rem; }
+.summary-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 0.5px solid var(--color-border); font-size: 13px; }
+.summary-row:last-child { border-bottom: none; }
+.summary-label { color: var(--color-text-muted); }
+.summary-value { font-weight: 500; text-align: right; max-width: 65%; }
+.success-state { text-align: center; padding: 2.5rem 1rem; }
+.success-icon { width: 52px; height: 52px; border-radius: 50%; background: var(--color-green-bg); color: var(--color-green-text); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 22px; }
+.success-title { font-size: 17px; font-weight: 500; margin-bottom: 6px; }
+.success-sub   { font-size: 13px; color: var(--color-text-muted); margin-bottom: 1.25rem; }
+
+/* LOADING */
+.loading { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text-muted); padding: 1rem 0; }
+.spinner { width: 16px; height: 16px; border: 2px solid var(--color-border); border-top-color: var(--color-blue-text); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* LISTADO PROFESORES */
+.list-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+.list-toolbar .field { margin-bottom: 0; }
+.list-toolbar select { width: auto; min-width: 150px; }
+.prof-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.prof-table th { text-align: left; padding: 8px 12px; font-size: 12px; color: var(--color-text-muted); font-weight: 500; border-bottom: 0.5px solid var(--color-border); white-space: nowrap; }
+.prof-table td { padding: 10px 12px; border-bottom: 0.5px solid var(--color-border); vertical-align: middle; }
+.prof-table tr:last-child td { border-bottom: none; }
+.prof-table tbody tr { cursor: pointer; transition: background 0.1s; }
+.prof-table tbody tr:hover { background: var(--color-bg); }
+.prof-table tbody tr.inactivo td { opacity: 0.5; }
+.materias-resumen { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip-mini      { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: var(--color-blue-bg); color: var(--color-blue-text); }
+.chip-mini-more { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #f0f0ee; color: var(--color-text-muted); }
+.empty-state { text-align: center; padding: 3rem 1rem; color: var(--color-text-muted); }
+.empty-state i { font-size: 36px; display: block; margin-bottom: 0.75rem; color: var(--color-text-faint); }
+
+/* FICHA */
+.ficha { max-width: 680px; }
+.ficha-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+.ficha-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--color-blue-bg); color: var(--color-blue-text); font-size: 16px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ficha-nombre { font-size: 17px; font-weight: 500; }
+.ficha-email  { font-size: 12px; color: var(--color-text-muted); }
+.ficha-section { margin-bottom: 1.5rem; }
+.ficha-section-title { font-size: 12px; font-weight: 500; color: var(--color-text-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 0.5px solid var(--color-border); }
+.ficha-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; padding-top: 1rem; border-top: 0.5px solid var(--color-border); }
+
+/* HORARIO */
+.horario-toolbar { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+.horario-toolbar select { width: auto; }
+.toolbar-sep { width: 0.5px; height: 24px; background: var(--color-border); margin: 0 4px; }
+.mode-btn { font-size: 12px; padding: 5px 12px; border-radius: 20px; border: 0.5px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text-muted); cursor: pointer; }
+.mode-btn.active { background: var(--color-blue-bg); border-color: var(--color-blue-border); color: var(--color-blue-text); }
+.btn-toolbar { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 5px 12px; }
+.dropdown-wrap { position: relative; }
+.dropdown-menu { position: absolute; right: 0; top: calc(100% + 4px); background: var(--color-surface); border: 0.5px solid var(--color-border-strong); border-radius: var(--radius); min-width: 160px; z-index: 50; overflow: hidden; }
+.dropdown-menu.hidden { display: none; }
+.dropdown-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; color: var(--color-text-muted); cursor: pointer; }
+.dropdown-item:hover { background: var(--color-bg); color: var(--color-text); }
+.h-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.h-table th { padding: 6px 8px; text-align: center; font-weight: 500; color: var(--color-text-muted); border-bottom: 0.5px solid var(--color-border); }
+.h-table th.bloque-col { text-align: left; width: 90px; }
+.h-table td { padding: 3px 4px; border: 0.5px solid var(--color-border); vertical-align: top; height: 44px; }
+.h-table td.bloque-header { font-size: 11px; color: var(--color-text-faint); padding: 4px 6px; background: var(--color-bg); white-space: nowrap; }
+
+.cur-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-color: var(--color-blue-border); }
+
+/* REPORTE */
+.reporte-resumen { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:1.5rem; }
+.rep-card { background:var(--color-surface); border:0.5px solid var(--color-border); border-radius:var(--radius); padding:14px 16px; }
+.rep-card-label { font-size:12px; color:var(--color-text-faint); margin-bottom:6px; }
+.rep-card-value { font-size:22px; font-weight:500; }
+.rep-row { display:grid; grid-template-columns:1fr auto; align-items:start; gap:8px; padding:10px 16px; border-bottom:0.5px solid var(--color-border); cursor:pointer; transition:background 0.1s; }
+.rep-row:hover { background:var(--color-bg); }
+.rep-row:last-child { border-bottom:none; }
+.rep-nombre { font-size:13px; font-weight:500; }
+.rep-meta { font-size:12px; color:var(--color-text-muted); margin-top:2px; }
+.rep-badges { display:flex; gap:6px; align-items:center; flex-shrink:0; }
+.rep-bar-wrap { height:5px; background:var(--color-bg); border-radius:3px; margin-top:6px; overflow:hidden; border:0.5px solid var(--color-border); }
+.rep-bar { height:100%; border-radius:3px; transition:width 0.3s; }
+.rep-bar-ok   { background:#1D9E75; }
+.rep-bar-over { background:#E24B4A; }
+.rep-bar-low  { background:#BA7517; }
+.rep-detalle { display:none; padding:10px 16px 14px; background:var(--color-bg); border-bottom:0.5px solid var(--color-border); }
+.rep-detalle.open { display:block; }
+.rep-det-row { display:flex; justify-content:space-between; font-size:12px; padding:5px 0; border-bottom:0.5px solid var(--color-border); color:var(--color-text-muted); }
+.rep-det-row:last-child { border-bottom:none; }
+.rep-det-mat { font-weight:500; color:var(--color-text); }
+
+/* CONFIGURACIÓN */
+.cfg-tabs { display:flex; gap:4px; margin-bottom:1.25rem; border-bottom:0.5px solid var(--color-border); padding-bottom:0; }
+.cfg-tab { background:none; border:none; border-bottom:2px solid transparent; border-radius:0; padding:8px 14px; font-size:13px; color:var(--color-text-muted); cursor:pointer; margin-bottom:-1px; }
+.cfg-tab:hover { color:var(--color-text); background:none; }
+.cfg-tab.active { color:var(--color-blue-text); border-bottom-color:var(--color-blue-text); font-weight:500; }
+.cfg-panel { display:none; }
+.cfg-panel.active { display:block; }
+.estr-list { display:flex; flex-direction:column; gap:8px; margin-bottom:1rem; }
+.estr-item { background:var(--color-surface); border:0.5px solid var(--color-border); border-radius:var(--radius); padding:12px 16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; transition:box-shadow 0.15s; }
+.estr-item:hover { box-shadow:0 2px 8px rgba(0,0,0,0.06); border-color:var(--color-blue-border); }
+.estr-item.selected { border-color:var(--color-blue-border); background:var(--color-blue-bg); }
+.bloques-table { width:100%; border-collapse:collapse; font-size:13px; }
+.bloques-table th { text-align:left; padding:7px 10px; font-size:11px; color:var(--color-text-muted); font-weight:500; border-bottom:0.5px solid var(--color-border); background:var(--color-bg); }
+.bloques-table td { padding:6px 8px; border-bottom:0.5px solid var(--color-border); vertical-align:middle; }
+.bloques-table tr:last-child td { border-bottom:none; }
+.bloques-table tr[draggable] { cursor:grab; }
+.bloques-table tr[draggable]:active { cursor:grabbing; }
+.bloques-table tr.drag-over td { background:var(--color-blue-bg); }
+.bloques-table td input { padding:4px 6px; font-size:12px; }
+.bloques-table td select { padding:4px 6px; font-size:12px; }
+.tipo-badge-academico { background:var(--color-blue-bg); color:var(--color-blue-text); }
+.tipo-badge-recreo    { background:var(--color-green-bg); color:var(--color-green-text); }
+.tipo-badge-almuerzo  { background:var(--color-amber-bg); color:var(--color-amber-text); }
+.drag-handle { color:var(--color-text-faint); cursor:grab; font-size:16px; padding:0 4px; }
+
+.toast { position: fixed; bottom: 20px; right: 20px; background: var(--color-surface); border: 0.5px solid var(--color-border-strong); border-radius: var(--radius); padding: 10px 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.toast.show { opacity: 1; }
+
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 200; display: flex; align-items: center; justify-content: center; }
+.modal-overlay.hidden { display: none; }
+.modal-box { background: var(--color-surface); border-radius: var(--radius-lg); padding: 24px; max-width: 380px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+.modal-title { font-size: 15px; font-weight: 500; margin-bottom: 8px; }
+.modal-sub   { font-size: 13px; color: var(--color-text-muted); margin-bottom: 1.25rem; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <span class="topbar-brand">HCA Horarios <span>/ Secundaria</span></span>
+    <div class="topbar-right">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-text-muted)">
+        <div class="conn-dot" id="conn-dot"></div>
+        <span id="conn-label">Conectando...</span>
+      </div>
+      <div class="user-pill">
+        <div class="user-avatar" id="user-initials">?</div>
+        <span id="user-name">—</span>
+        <span class="badge badge-admin" id="user-role">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <button class="nav-item active" id="nav-dashboard" onclick="goTo('dashboard')">
+      <i class="ti ti-layout-dashboard"></i> Dashboard
+    </button>
+    <button class="nav-item" id="nav-horario" onclick="goTo('horario')">
+      <i class="ti ti-calendar"></i> Horario
+    </button>
+    <div class="nav-divider"></div>
+    <div class="nav-group-label">Datos</div>
+    <button class="nav-item" id="nav-profesores" onclick="goTo('profesores')">
+      <i class="ti ti-users"></i> Profesores
+    </button>
+    <button class="nav-item" id="nav-materias" onclick="goTo('materias')">
+      <i class="ti ti-book"></i> Materias
+    </button>
+    <button class="nav-item" id="nav-cursos" onclick="goTo('cursos')">
+      <i class="ti ti-school"></i> Cursos
+    </button>
+    <button class="nav-item" id="nav-plan" onclick="goTo('plan')">
+      <i class="ti ti-table"></i> Plan de estudios
+    </button>
+    <div class="nav-divider"></div>
+    <button class="nav-item" id="nav-reglas" onclick="goTo('reglas')">
+      <i class="ti ti-list-check"></i> Reglas
+    </button>
+    <div class="nav-divider"></div>
+    <button class="nav-item" id="nav-reporte" onclick="goTo('reporte')">
+      <i class="ti ti-chart-bar"></i> Reporte de horas
+    </button>
+    <div class="nav-divider"></div>
+    <button class="nav-item" id="nav-generacion" onclick="goTo('generacion')">
+      <i class="ti ti-player-play"></i> Generación
+    </button>
+    <div class="nav-divider"></div>
+    <button class="nav-item" id="nav-config" onclick="goTo('config')">
+      <i class="ti ti-settings"></i> Configuración
+    </button>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="section active" id="section-dashboard">
+      <p class="page-title">Dashboard</p>
+      <p class="page-sub" id="dash-sub">Cargando datos...</p>
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">Profesores activos</div><div class="metric-value" id="m-profesores">—</div></div>
+        <div class="metric"><div class="metric-label">Materias</div><div class="metric-value" id="m-materias">—</div></div>
+        <div class="metric"><div class="metric-label">Cursos activos</div><div class="metric-value" id="m-cursos">—</div></div>
+        <div class="metric"><div class="metric-label">Ciclo</div><div class="metric-value" id="m-ciclo">—</div></div>
+      </div>
+      <div class="status-grid">
+        <div class="card">
+          <div style="font-size:13px;font-weight:500;margin-bottom:10px">Estado del sistema</div>
+          <div class="status-row"><span class="status-label"><span class="dot dot-ok"></span>Conexión</span><span style="font-size:12px;color:var(--color-text-muted)">OK</span></div>
+          <div class="status-row"><span class="status-label"><span class="dot dot-ok"></span>Base de datos</span><span style="font-size:12px;color:var(--color-text-muted)">Google Sheets</span></div>
+          <div class="status-row"><span class="status-label"><span class="dot" id="dot-reglas"></span>Reglas activas</span><span id="st-reglas" style="font-size:12px;color:var(--color-text-muted)">—</span></div>
+        </div>
+        <div class="card">
+          <div style="font-size:13px;font-weight:500;margin-bottom:10px">Acceso rápido</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button onclick="goTo('profesores')"><i class="ti ti-users"></i> Ver profesores</button>
+            <button onclick="goTo('materias')"><i class="ti ti-book"></i> Ver materias</button>
+            <button onclick="goTo('horario')"><i class="ti ti-calendar"></i> Ver horario</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HORARIO -->
+    <div class="section" id="section-horario">
+      <p class="page-title">Horario</p>
+      <p class="page-sub">Vista del horario por curso o por profesor</p>
+      <div class="horario-toolbar">
+        <select id="vista-tipo" onchange="onVistaCambio()">
+          <option value="curso">Ver por curso</option>
+          <option value="profesor">Ver por profesor</option>
+        </select>
+        <div id="filtro-curso" style="display:flex;gap:8px">
+          <select id="sel-año"><option value="">Año...</option></select>
+          <select id="sel-div" onchange="buildHorario()"><option value="">División...</option></select>
+        </div>
+        <div id="filtro-prof" style="display:none"><select id="sel-prof" onchange="buildHorario()"><option value="">Profesor...</option></select></div>
+        <div class="toolbar-sep"></div>
+        <div class="mode-btn active" id="btn-consulta" onclick="setModo('consulta')">Consulta</div>
+        <div class="mode-btn" id="btn-edicion" onclick="setModo('edicion')">Edición</div>
+        <div class="toolbar-sep"></div>
+        <button class="btn-toolbar" onclick="imprimirHorario()"><i class="ti ti-printer"></i> Imprimir</button>
+        <div class="dropdown-wrap">
+          <button class="btn-toolbar" onclick="toggleDropdown()"><i class="ti ti-download"></i> Descargar <i class="ti ti-chevron-down" style="font-size:11px"></i></button>
+          <div class="dropdown-menu hidden" id="dropdown-menu">
+            <div class="dropdown-item" onclick="descargar('pdf')"><i class="ti ti-file-type-pdf"></i> Descargar PDF</div>
+            <div class="dropdown-item" onclick="descargar('xlsx')"><i class="ti ti-file-spreadsheet"></i> Descargar Excel</div>
+          </div>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="h-table">
+          <thead><tr><th class="bloque-col">Bloque</th><th>Lunes</th><th>Martes</th><th>Miércoles</th><th>Jueves</th><th>Viernes</th></tr></thead>
+          <tbody id="horario-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PROFESORES -->
+    <div class="section" id="section-profesores">
+      <div id="prof-listado"></div>
+      <div id="prof-wizard" style="display:none">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem">
+          <button class="btn-back" onclick="volverListadoProf()"><i class="ti ti-arrow-left"></i> Volver</button>
+          <span style="font-size:13px;color:var(--color-text-muted)">Nuevo profesor</span>
+        </div>
+        <div class="wizard">
+          <div class="steps" id="steps-prof"></div>
+          <div id="panels-prof"></div>
+        </div>
+      </div>
+      <div id="prof-ficha" style="display:none"></div>
+    </div>
+
+    <!-- MATERIAS -->
+    <div class="section" id="section-materias">
+      <div id="mat-listado"></div>
+      <div id="mat-wizard" style="display:none">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem">
+          <button class="btn-back" onclick="volverListadoMat()"><i class="ti ti-arrow-left"></i> Volver</button>
+          <span style="font-size:13px;color:var(--color-text-muted)">Nueva materia</span>
+        </div>
+        <div class="wizard">
+          <div class="steps" id="steps-mat"></div>
+          <div id="panels-mat"></div>
+        </div>
+      </div>
+      <div id="mat-ficha" style="display:none"></div>
+    </div>
+
+    <!-- CURSOS -->
+    <div class="section" id="section-cursos">
+      <div id="cur-listado"></div>
+      <div id="cur-wizard" style="display:none">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem">
+          <button class="btn-back" onclick="volverListadoCur()"><i class="ti ti-arrow-left"></i> Volver</button>
+          <span style="font-size:13px;color:var(--color-text-muted)">Nuevo curso</span>
+        </div>
+        <div class="wizard">
+          <div class="steps" id="steps-cur"></div>
+          <div id="panels-cur"></div>
+        </div>
+      </div>
+      <div id="cur-ficha" style="display:none"></div>
+    </div>
+
+    <!-- PLAN DE ESTUDIOS -->
+    <div class="section" id="section-plan">
+      <p class="page-title">Plan de estudios</p>
+      <p class="page-sub">Materias, carga horaria y profesor a cargo por curso.</p>
+      <div class="card" style="padding:12px 16px;margin-bottom:1rem">
+        <div class="list-toolbar">
+          <div class="field" style="margin-bottom:0">
+            <label>Año</label>
+            <select id="plan-f-año" onchange="onPlanFiltroAñoChange()">
+              <option value="">Todos los años</option>
+              <option value="1">1° año</option><option value="2">2° año</option><option value="3">3° año</option>
+              <option value="4">4° año</option><option value="5">5° año</option><option value="6">6° año</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Curso</label>
+            <select id="plan-f-curso" onchange="filtrarPlan()">
+              <option value="">Todos los cursos</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div id="plan-tabla-wrap"><div class="loading" style="padding:1.5rem"><div class="spinner"></div> Cargando...</div></div>
+      </div>
+    </div>
+
+    <!-- REGLAS -->
+    <div class="section" id="section-reglas">
+      <p class="page-title">Reglas</p>
+      <p class="page-sub">Restricciones para la generación del horario</p>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+        <button onclick="abrirModalRegla()"><i class="ti ti-plus"></i> Nueva regla</button>
+      </div>
+      <div id="reglas-container"><div class="loading"><div class="spinner"></div> Cargando reglas...</div></div>
+    </div>
+
+    <!-- REPORTE DE HORAS -->
+    <div class="section" id="section-reporte">
+      <p class="page-title">Reporte de horas</p>
+      <p class="page-sub">Horas asignadas vs. contrato por docente</p>
+      <div id="reporte-container"><div class="loading"><div class="spinner"></div> Cargando...</div></div>
+    </div>
+
+    <!-- CONFIGURACIÓN -->
+    <div class="section" id="section-config">
+      <p class="page-title">Configuración</p>
+      <p class="page-sub">Ajustes del sistema</p>
+      <div class="cfg-tabs">
+        <button class="cfg-tab active" id="cfg-tab-estructuras" onclick="activarCfgTab('estructuras')">Estructuras horarias</button>
+        <button class="cfg-tab" id="cfg-tab-usuarios" onclick="activarCfgTab('usuarios')">Usuarios</button>
+      </div>
+      <div id="cfg-panel-estructuras" class="cfg-panel">
+        <div id="cfg-estr-container"></div>
+      </div>
+      <div id="cfg-panel-usuarios" class="cfg-panel">
+        <div id="cfg-usuarios-container"></div>
+      </div>
+    </div>
+
+    <!-- GENERACION -->
+    <div class="section" id="section-generacion">
+      <p class="page-title">Generación</p>
+      <p class="page-sub">Motor de asignación automática de horarios</p>
+      <div class="card" style="text-align:center;padding:3rem">
+        <i class="ti ti-player-play" style="font-size:40px;color:var(--color-text-faint);display:block;margin-bottom:1rem"></i>
+        <p style="font-size:15px;font-weight:500;margin-bottom:8px">Motor CSP</p>
+        <p style="font-size:13px;color:var(--color-text-muted);margin-bottom:1.5rem">Completá la carga de profesores, materias y reglas antes de generar.</p>
+        <button><i class="ti ti-player-play"></i> Generar horario</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- MODAL CONFIRMACIÓN -->
+<div class="modal-overlay hidden" id="modal-confirm">
+  <div class="modal-box">
+    <p class="modal-title" id="modal-title">¿Confirmamos los cambios?</p>
+    <p class="modal-sub"  id="modal-sub"></p>
+    <div class="modal-actions">
+      <button onclick="cerrarModal()">Cancelar</button>
+      <button class="primary" id="modal-ok-btn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REPARTO / CO-DOCENCIA -->
+<div class="modal-overlay hidden" id="modal-reparto">
+  <div class="modal-box" style="max-width:520px">
+    <p class="modal-title">Esta materia ya tiene otro profesor</p>
+    <p class="modal-sub" id="reparto-sub"></p>
+    <div id="reparto-cuerpo"></div>
+    <p id="reparto-error" style="color:var(--color-red-text);font-size:13px;margin-top:8px;display:none"></p>
+    <div class="modal-actions">
+      <button onclick="cerrarModalReparto()">Cancelar</button>
+      <button class="primary" onclick="confirmarModalReparto()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const API_URL = 'https://script.google.com/macros/s/AKfycbw3x0X1AhXCsMKooFiefKMPQPko8Ytek96tWnDg7jcH2Wfc76xpMQhRjQ0DmnlQX2pc6w/exec';
+const USUARIO = { email: 'maxi.rodriguez@colegioandersen.org', nombre: 'Maxi Rodriguez', rol: 'admin' };
+let _cache = {};
+
+// ============================================================
+// API
+// ============================================================
+async function apiGet(accion, entidad) {
+  const key = entidad || accion;
+  if (_cache[key]) return _cache[key];
+  const url  = entidad ? `${API_URL}?accion=${accion}&entidad=${entidad}` : `${API_URL}?accion=${accion}`;
+  const res  = await fetch(url);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error);
+  _cache[key] = json.data;
+  return json.data;
+}
+
+async function apiPost(accion, entidad, datos, id) {
+  const body = { accion, entidad, datos, email: USUARIO.email };
+  if (id !== undefined) body.id = id;
+  const res  = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(body) });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error);
+  delete _cache[entidad ? entidad.toUpperCase() : accion];
+  return json.data;
+}
+
+function isTruthy(v) { return v === true || v === 'true' || v === 'TRUE'; }
+function parseJSON(str, fallback) { try { return JSON.parse(str); } catch { return fallback; } }
+
+// ============================================================
+// NAVEGACIÓN
+// ============================================================
+function goTo(section) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-' + section).classList.add('active');
+  document.getElementById('nav-' + section).classList.add('active');
+  if (section === 'horario')    buildHorario();
+  if (section === 'cursos')     renderListadoCur();
+  if (section === 'plan')       renderPlanEstudios();
+  if (section === 'reglas')     renderReglas();
+  if (section === 'profesores') renderListadoProf();
+  if (section === 'materias')   renderListadoMat();
+  if (section === 'reporte')    renderReporte();
+  if (section === 'config')     renderConfig();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+async function init() {
+  const ini = USUARIO.nombre.split(' ').map(p => p[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('user-initials').textContent = ini;
+  document.getElementById('user-name').textContent     = USUARIO.nombre;
+  document.getElementById('user-role').textContent     = USUARIO.rol;
+  try {
+    const cfg = await apiGet('config');
+    document.getElementById('conn-dot').classList.add('ok');
+    document.getElementById('conn-label').textContent  = 'Conectado';
+    document.getElementById('m-ciclo').textContent     = cfg.ciclo_activo;
+    document.getElementById('dash-sub').textContent    = `Estado general — ciclo ${cfg.ciclo_activo}`;
+  } catch {
+    document.getElementById('conn-dot').classList.add('err');
+    document.getElementById('conn-label').textContent  = 'Sin conexión';
+  }
+  try {
+    const [profs, mats, cursos, reglas] = await Promise.all([
+      apiGet('leer','PROFESORES'), apiGet('leer','MATERIAS'),
+      apiGet('leer','CURSOS'),     apiGet('leer','REGLAS'),
+    ]);
+    document.getElementById('m-profesores').textContent = profs.filter(p => isTruthy(p.activo)).length;
+    document.getElementById('m-materias').textContent   = mats.filter(m => isTruthy(m.activa)).length;
+    document.getElementById('m-cursos').textContent     = cursos.filter(c => isTruthy(c.activo)).length;
+    const ra = reglas.filter(r => isTruthy(r.activa)).length;
+    document.getElementById('st-reglas').textContent   = ra + ' activas';
+    document.getElementById('dot-reglas').className    = 'dot ' + (ra > 0 ? 'dot-ok' : 'dot-warn');
+  } catch(e) { console.warn('Error métricas:', e); }
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+let _modalCb = null;
+function confirmar(titulo, sub, cb) {
+  document.getElementById('modal-title').textContent = titulo;
+  document.getElementById('modal-sub').textContent   = sub;
+  _modalCb = cb;
+  document.getElementById('modal-confirm').classList.remove('hidden');
+}
+function cerrarModal() { document.getElementById('modal-confirm').classList.add('hidden'); _modalCb = null; }
+document.getElementById('modal-ok-btn').onclick = async () => { const cb = _modalCb; cerrarModal(); if (cb) await cb(); };
+
+// ============================================================
+// PROFESORES — BLOQUES (desde API, con fallback)
+// ============================================================
+const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes'];
+let _bloquesCache = null;
+
+function _parsearHora(val) {
+  // Sheets serializa las horas como Date ISO: "1899-12-30T11:15:00.000Z"
+  // El HH:MM del string ISO es la hora exacta almacenada en Sheets — NO hay que convertir timezone.
+  // Sheets usa 1899-12-30 como fecha base para valores de tipo Time puro.
+  if (!val) return '';
+  const s = String(val);
+  if (s.includes('T')) {
+    const match = s.match(/T(\d{2}):(\d{2})/);
+    if (match) {
+      const h = parseInt(match[1]);
+      const m = match[2];
+      return `${h}:${m}`;
+    }
+  }
+  return s; // ya viene como "8:15"
+}
+
+async function getBloques() {
+  if (_bloquesCache) return _bloquesCache;
+  try {
+    const todos = await apiGet('leer','BLOQUES');
+    const academicos = todos.filter(b => b.tipo === 'academico').sort((a,b) => Number(a.numero) - Number(b.numero));
+    if (academicos.length) {
+      _bloquesCache = academicos.map(b => ({
+        id:    b.id,
+        num:   Number(b.numero),
+        label: b.numero + '°',
+        hora:  _parsearHora(b.hora_inicio) + '–' + _parsearHora(b.hora_fin)
+      }));
+      return _bloquesCache;
+    }
+  } catch {}
+  _bloquesCache = [
+    {id:null,num:1,label:'1°',hora:'8:15–8:55'},{id:null,num:2,label:'2°',hora:'8:55–9:35'},
+    {id:null,num:3,label:'3°',hora:'9:55–10:35'},{id:null,num:4,label:'4°',hora:'10:35–11:15'},
+    {id:null,num:5,label:'5°',hora:'12:30–13:05'},{id:null,num:6,label:'6°',hora:'13:05–13:40'},
+    {id:null,num:7,label:'7°',hora:'13:50–14:25'},{id:null,num:8,label:'8°',hora:'14:25–15:10'},
+    {id:null,num:9,label:'9°',hora:'15:20–15:55'},{id:null,num:10,label:'10°',hora:'15:55–16:30'},
+  ];
+  return _bloquesCache;
+}
+
+function initDisponibilidad(bloques) {
+  const d = {};
+  DIAS.forEach(dia => { d[dia] = {}; bloques.forEach(b => d[dia][b.num] = false); });
+  return d;
+}
+
+// ============================================================
+// PROFESORES — LISTADO
+// ============================================================
+let _profFiltros = { materia:'', estado:'activos', horas:'' };
+
+async function renderListadoProf() {
+  mostrarModoProf('listado');
+  const cont = document.getElementById('prof-listado');
+  cont.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div>
+        <p class="page-title">Profesores</p>
+        <p class="page-sub" style="margin-bottom:0">Listado de docentes</p>
+      </div>
+      <button class="primary" onclick="mostrarWizardProf()"><i class="ti ti-plus"></i> Nuevo profesor</button>
+    </div>
+    <div class="card" style="margin-bottom:1rem;padding:12px 16px">
+      <div class="list-toolbar">
+        <div class="field"><label>Materia</label><select id="f-materia" onchange="aplicarFiltrosProf()"><option value="">Todas</option></select></div>
+        <div class="field"><label>Estado</label>
+          <select id="f-estado" onchange="aplicarFiltrosProf()">
+            <option value="activos">Activos</option>
+            <option value="inactivos">Inactivos</option>
+            <option value="todos">Todos</option>
+          </select>
+        </div>
+        <div class="field"><label>Horas de contrato</label>
+          <select id="f-horas" onchange="aplicarFiltrosProf()">
+            <option value="">Sin filtro</option>
+            <option value="sin_datos">Sin datos</option>
+            <option value="menos20">Menos de 20</option>
+            <option value="mas20">Más de 20</option>
+          </select>
+        </div>
+        <button onclick="limpiarFiltrosProf()" class="btn-sm" style="align-self:flex-end"><i class="ti ti-x"></i> Limpiar</button>
+      </div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div id="prof-tabla-wrap"><div class="loading" style="padding:1.5rem"><div class="spinner"></div> Cargando...</div></div>
+    </div>`;
+  await cargarTablaProf();
+}
+
+async function cargarTablaProf() {
+  try {
+    const [profs, mats] = await Promise.all([apiGet('leer','PROFESORES'), apiGet('leer','MATERIAS')]);
+    const sel = document.getElementById('f-materia');
+    if (sel && sel.options.length === 1) {
+      mats.forEach(m => { const o = document.createElement('option'); o.value = m.nombre; o.textContent = m.nombre; sel.appendChild(o); });
+      sel.value = _profFiltros.materia;
+    }
+    const fe = document.getElementById('f-estado'); if (fe) fe.value = _profFiltros.estado;
+    const fh = document.getElementById('f-horas');  if (fh) fh.value = _profFiltros.horas;
+    renderTablaProf(profs);
+  } catch(e) {
+    const w = document.getElementById('prof-tabla-wrap');
+    if (w) w.innerHTML = `<p style="padding:1.5rem;color:var(--color-red-text)">Error: ${e.message}</p>`;
+  }
+}
+
+function aplicarFiltrosProf() {
+  _profFiltros.materia = document.getElementById('f-materia')?.value || '';
+  _profFiltros.estado  = document.getElementById('f-estado')?.value  || 'activos';
+  _profFiltros.horas   = document.getElementById('f-horas')?.value   || '';
+  renderTablaProf(_cache['PROFESORES'] || []);
+}
+
+function limpiarFiltrosProf() {
+  _profFiltros = { materia:'', estado:'activos', horas:'' };
+  ['f-materia','f-estado','f-horas'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = id === 'f-estado' ? 'activos' : '';
+  });
+  renderTablaProf(_cache['PROFESORES'] || []);
+}
+
+function renderTablaProf(profs) {
+  let lista = [...profs];
+  if (_profFiltros.estado === 'activos')   lista = lista.filter(p => isTruthy(p.activo));
+  if (_profFiltros.estado === 'inactivos') lista = lista.filter(p => !isTruthy(p.activo));
+  if (_profFiltros.materia) {
+    lista = lista.filter(p => { const m = parseJSON(p.materias, []); return Array.isArray(m) && m.includes(_profFiltros.materia); });
+  }
+  if (_profFiltros.horas === 'sin_datos') lista = lista.filter(p => !p.horas_contrato || p.horas_contrato === '');
+  if (_profFiltros.horas === 'menos20')  lista = lista.filter(p => p.horas_contrato && Number(p.horas_contrato) < 20);
+  if (_profFiltros.horas === 'mas20')    lista = lista.filter(p => p.horas_contrato && Number(p.horas_contrato) > 20);
+  lista.sort((a,b) => String(a.apellido).localeCompare(String(b.apellido), 'es'));
+
+  const wrap = document.getElementById('prof-tabla-wrap');
+  if (!wrap) return;
+
+  if (!lista.length) {
+    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-users"></i>No hay profesores que coincidan con los filtros.</div>`;
+    return;
+  }
+
+  const rows = lista.map(p => {
+    const activo  = isTruthy(p.activo);
+    const chips   = parseJSON(p.materias, []);
+    const visibles = Array.isArray(chips) ? chips.slice(0,3) : [];
+    const resto    = Array.isArray(chips) ? chips.length - 3 : 0;
+    const horas    = p.horas_contrato
+      ? `${p.horas_contrato} ${p.unidad_contrato === 'modulos' ? 'mód.' : 'hs.'}`
+      : `<span style="color:var(--color-text-faint)">—</span>`;
+    const chipsHtml = visibles.map(m => `<span class="chip-mini">${m}</span>`).join('')
+      + (resto > 0 ? `<span class="chip-mini-more">+${resto}</span>` : '');
+    return `<tr class="${activo?'':'inactivo'}" onclick="abrirFichaProf(${p.id})">
+      <td><div style="font-weight:500">${p.apellido}, ${p.nombre}</div><div style="font-size:12px;color:var(--color-text-muted)">${p.email||'—'}</div></td>
+      <td><div class="materias-resumen">${chipsHtml || '<span style="color:var(--color-text-faint);font-size:12px">Sin asignar</span>'}</div></td>
+      <td>${horas}</td>
+      <td><span class="badge ${activo?'badge-admin':'badge-inactivo'}">${activo?'Activo':'Inactivo'}</span></td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<table class="prof-table">
+    <thead><tr><th>Docente</th><th>Materias</th><th>Hs. contrato</th><th>Estado</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// ============================================================
+// PROFESORES — MODOS
+// ============================================================
+function mostrarModoProf(modo) {
+  document.getElementById('prof-listado').style.display = modo === 'listado' ? 'block' : 'none';
+  document.getElementById('prof-wizard').style.display  = modo === 'wizard'  ? 'block' : 'none';
+  document.getElementById('prof-ficha').style.display   = modo === 'ficha'   ? 'block' : 'none';
+}
+function volverListadoProf() { delete _cache['PROFESORES']; renderListadoProf(); }
+function mostrarWizardProf() { mostrarModoProf('wizard'); initWizardProf(); }
+
+// ============================================================
+// PROFESORES — WIZARD ALTA
+// ============================================================
+let profState = {};
+
+async function initWizardProf() {
+  const bl = await getBloques();
+  profState = { step:1, materias:[], disponibilidad: initDisponibilidad(bl) };
+  renderStepsProf(); renderPanelProf(1);
+}
+
+function renderStepsProf() {
+  const labels = ['Datos','Materias','Disponibilidad','Confirmar'];
+  // El paso 5 es la pantalla de éxito posterior a "Confirmar" — se muestran los 4 pasos como completados.
+  const pasoEfectivo = profState.step > labels.length ? labels.length + 1 : profState.step;
+  document.getElementById('steps-prof').innerHTML = labels.map((l,i) => {
+    const n = i+1, cls = n < pasoEfectivo ? 'done' : n === pasoEfectivo ? 'active' : '';
+    return `<div class="step-dot ${cls}"><div class="dot-circle">${n < pasoEfectivo ? '<i class="ti ti-check" style="font-size:13px"></i>' : n}</div><span class="step-label">${l}</span></div>${i < labels.length-1 ? '<div class="step-line"></div>' : ''}`;
+  }).join('');
+}
+
+async function renderPanelProf(step) {
+  profState.step = step; renderStepsProf();
+  const cont = document.getElementById('panels-prof');
+  const bl   = await getBloques();
+
+  if (step === 1) {
+    cont.innerHTML = `
+      <p class="panel-title">Datos del profesor</p>
+      <p class="panel-sub">Completá los datos básicos del docente.</p>
+      <div class="field-row">
+        <div class="field"><label>Apellido *</label><input id="p-apellido" value="${profState.apellido||''}" placeholder="García" /></div>
+        <div class="field"><label>Nombre *</label><input id="p-nombre" value="${profState.nombre||''}" placeholder="Laura" /></div>
+      </div>
+      <div class="field"><label>Email institucional</label><input id="p-email" type="email" value="${profState.email||''}" placeholder="lgarcia@colegioandersen.org" /></div>
+      <div class="field-row">
+        <div class="field"><label>Horas de contrato</label><input id="p-horas" type="number" min="1" max="40" value="${profState.horas_contrato||''}" placeholder="Ej: 20" /></div>
+        <div class="field"><label>Unidad</label>
+          <select id="p-unidad">
+            <option value="horas_reloj" ${profState.unidad_contrato==='horas_reloj'||!profState.unidad_contrato?'selected':''}>Horas reloj</option>
+            <option value="modulos" ${profState.unidad_contrato==='modulos'?'selected':''}>Módulos</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row"><span></span><button class="primary" onclick="avanzarProf2()">Siguiente <i class="ti ti-arrow-right"></i></button></div>`;
+  }
+
+  if (step === 2) {
+    let mlist = [];
+    try { mlist = await apiGet('leer','MATERIAS'); } catch {}
+    const nombres = mlist.length ? mlist.filter(m => isTruthy(m.activa)).map(m => m.nombre)
+      : ['Matemática','Lengua','Historia','Geografía','Biología','Física','Química','Inglés','Educación Física','Arte','IT','Filosofía'];
+    cont.innerHTML = `
+      <p class="panel-title">Materias que dicta</p>
+      <p class="panel-sub">Seleccioná todas las materias que puede dar este docente.</p>
+      <div class="materias-chips">${nombres.map(m => `<div class="chip ${profState.materias.includes(m)?'selected':''}" onclick="toggleMateriaWiz(this,'${m}')">${m}</div>`).join('')}</div>
+      <div class="btn-row">
+        <button class="btn-back" onclick="renderPanelProf(1)"><i class="ti ti-arrow-left"></i> Atrás</button>
+        <button class="primary" onclick="renderPanelProf(3)">Siguiente <i class="ti ti-arrow-right"></i></button>
+      </div>`;
+  }
+
+  if (step === 3) {
+    let rows = `<thead><tr><th class="blq-col">Bloque</th>${DIAS.map(d=>`<th>${d}</th>`).join('')}</tr></thead><tbody>`;
+    bl.forEach(b => {
+      rows += `<tr><td class="blq-label">${b.label}<span class="hora-label">${b.hora}</span></td>`;
+      DIAS.forEach(d => {
+        const on = profState.disponibilidad[d]?.[b.num];
+        rows += `<td><div class="disp-cell ${on?'on':''}" id="dc-${d}-${b.num}" onclick="toggleDispWiz('${d}',${b.num})"></div></td>`;
+      });
+      rows += '</tr>';
+    });
+    rows += '</tbody>';
+    cont.innerHTML = `
+      <p class="panel-title">Disponibilidad horaria</p>
+      <p class="panel-sub">Marcá los bloques en que el docente <strong>sí puede</strong> dar clases.</p>
+      <div class="select-all-row">
+        <button class="btn-sm" onclick="setAllDispWiz(true)">Marcar todos</button>
+        <button class="btn-sm" onclick="setAllDispWiz(false)">Limpiar todo</button>
+      </div>
+      <div style="overflow-x:auto"><table class="disp-table">${rows}</table></div>
+      <div class="legend"><div class="legend-item"><div class="legend-dot on"></div> Disponible</div><div class="legend-item"><div class="legend-dot off"></div> No disponible</div></div>
+      <div class="btn-row">
+        <button class="btn-back" onclick="renderPanelProf(2)"><i class="ti ti-arrow-left"></i> Atrás</button>
+        <button class="primary" onclick="renderPanelProf(4)">Siguiente <i class="ti ti-arrow-right"></i></button>
+      </div>`;
+  }
+
+  if (step === 4) {
+    const horas = profState.horas_contrato ? `${profState.horas_contrato} ${profState.unidad_contrato==='modulos'?'módulos':'horas reloj'}` : '—';
+    const disp  = DIAS.map(d => { const bs = bl.filter(b => profState.disponibilidad[d]?.[b.num]).map(b=>b.label); return bs.length ? `${d}: ${bs.join(', ')}` : null; }).filter(Boolean).join(' | ') || 'Sin disponibilidad marcada';
+    cont.innerHTML = `
+      <p class="panel-title">Confirmación</p>
+      <p class="panel-sub">Revisá los datos antes de guardar.</p>
+      <div class="summary-card">
+        <div class="summary-row"><span class="summary-label">Nombre</span><span class="summary-value">${profState.apellido||'—'}, ${profState.nombre||'—'}</span></div>
+        <div class="summary-row"><span class="summary-label">Email</span><span class="summary-value">${profState.email||'—'}</span></div>
+        <div class="summary-row"><span class="summary-label">Horas de contrato</span><span class="summary-value">${horas}</span></div>
+        <div class="summary-row"><span class="summary-label">Materias</span><span class="summary-value">${profState.materias.join(', ')||'—'}</span></div>
+        <div class="summary-row"><span class="summary-label">Disponibilidad</span><span class="summary-value" style="font-size:12px">${disp}</span></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-back" onclick="renderPanelProf(3)"><i class="ti ti-arrow-left"></i> Atrás</button>
+        <button class="primary" onclick="guardarProfNuevo()"><i class="ti ti-check"></i> Guardar profesor</button>
+      </div>`;
+  }
+
+  if (step === 5) {
+    cont.innerHTML = `
+      <div class="success-state">
+        <div class="success-icon"><i class="ti ti-check"></i></div>
+        <p class="success-title">Profesor guardado</p>
+        <p class="success-sub">Los datos fueron guardados correctamente.</p>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button onclick="initWizardProf()"><i class="ti ti-plus"></i> Cargar otro</button>
+          <button class="primary" onclick="volverListadoProf()"><i class="ti ti-list"></i> Ver listado</button>
+        </div>
+      </div>`;
+  }
+}
+
+async function avanzarProf2() {
+  profState.apellido        = document.getElementById('p-apellido')?.value.trim() || '';
+  profState.nombre          = document.getElementById('p-nombre')?.value.trim()   || '';
+  profState.email           = document.getElementById('p-email')?.value.trim()    || '';
+  profState.horas_contrato  = document.getElementById('p-horas')?.value           || '';
+  profState.unidad_contrato = document.getElementById('p-unidad')?.value          || 'horas_reloj';
+  if (!profState.apellido || !profState.nombre) { showToast('Completá nombre y apellido', 'err'); return; }
+  if (profState.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profState.email)) {
+    showToast('El email no tiene un formato válido', 'err'); return;
+  }
+
+  // Verificar duplicados por email (solo si se cargó un email)
+  if (profState.email) {
+    try {
+      const profs = await apiGet('leer', 'PROFESORES');
+      const emailLower = profState.email.toLowerCase();
+      const existente = profs.find(p => (p.email || '').toLowerCase() === emailLower);
+
+      if (existente) {
+        if (isTruthy(existente.activo)) {
+          showToast(`Ya existe un profesor activo con el email "${existente.email}" (${existente.apellido}, ${existente.nombre}).`, 'err');
+          return;
+        } else {
+          confirmar(
+            `"${existente.apellido}, ${existente.nombre}" ya existe pero está inactivo`,
+            '¿Querés reactivarlo en lugar de crear un profesor nuevo?',
+            async () => {
+              try {
+                await apiPost('editar', 'profesores', { activo: true }, existente.id);
+                delete _cache['PROFESORES'];
+                showToast(`"${existente.apellido}, ${existente.nombre}" reactivado`);
+                volverListadoProf();
+              } catch(e) { showToast('Error: ' + e.message, 'err'); }
+            }
+          );
+          return;
+        }
+      }
+    } catch(e) {
+      // Si falla la consulta, dejamos pasar — no bloqueamos el alta por un error de red
+      console.warn('No se pudo verificar duplicados:', e.message);
+    }
+  }
+
+  renderPanelProf(2);
+}
+function toggleMateriaWiz(el, nombre) {
+  if (profState.materias.includes(nombre)) { profState.materias = profState.materias.filter(m => m !== nombre); el.classList.remove('selected'); }
+  else { profState.materias.push(nombre); el.classList.add('selected'); }
+}
+function toggleDispWiz(dia, num) {
+  if (!profState.disponibilidad[dia]) profState.disponibilidad[dia] = {};
+  profState.disponibilidad[dia][num] = !profState.disponibilidad[dia][num];
+  const cell = document.getElementById(`dc-${dia}-${num}`);
+  if (cell) cell.className = 'disp-cell ' + (profState.disponibilidad[dia][num] ? 'on' : '');
+}
+async function setAllDispWiz(val) {
+  const bl = await getBloques();
+  DIAS.forEach(d => bl.forEach(b => {
+    if (!profState.disponibilidad[d]) profState.disponibilidad[d] = {};
+    profState.disponibilidad[d][b.num] = val;
+    const cell = document.getElementById(`dc-${d}-${b.num}`);
+    if (cell) cell.className = 'disp-cell ' + (val ? 'on' : '');
+  }));
+}
+async function guardarProfNuevo() {
+  try {
+    await apiPost('crear','profesores',{
+      apellido: profState.apellido, nombre: profState.nombre, email: profState.email,
+      activo: true, horas_contrato: profState.horas_contrato, unidad_contrato: profState.unidad_contrato,
+      materias: JSON.stringify(profState.materias), disponibilidad: JSON.stringify(profState.disponibilidad),
+    });
+    delete _cache['PROFESORES'];
+    renderPanelProf(5);
+    showToast('Profesor guardado correctamente');
+  } catch(e) { showToast('Error al guardar: ' + e.message, 'err'); }
+}
+
+// ============================================================
+// PROFESORES — FICHA EDITABLE
+// ============================================================
+let fichaState = {};
+
+async function abrirFichaProf(id) {
+  mostrarModoProf('ficha');
+  const cont = document.getElementById('prof-ficha');
+  cont.innerHTML = '<div class="loading" style="padding:2rem"><div class="spinner"></div> Cargando ficha...</div>';
+  try {
+    const [profs, mats, bl, asigs, cursos, bloquesComp, bloquesCompDoc] = await Promise.all([
+      apiGet('leer','PROFESORES'), apiGet('leer','MATERIAS'), getBloques(),
+      apiGet('leer','ASIGNACIONES'), apiGet('leer','CURSOS'),
+      apiGet('leer','BLOQUES_COMPARTIDOS'), apiGet('leer','BLOQUES_COMPARTIDOS_DOCENTES')
+    ]);
+    const prof = profs.find(p => String(p.id) === String(id));
+    if (!prof) throw new Error('Profesor no encontrado');
+
+    const mProf  = parseJSON(prof.materias, []);
+    const dProf  = parseJSON(prof.disponibilidad, initDisponibilidad(bl));
+    const activo = isTruthy(prof.activo);
+    const ini    = ((prof.apellido||'')[0]||'') + ((prof.nombre||'')[0]||'');
+
+    // Asignaciones actuales de este profesor
+    const asigProf = asigs.filter(a => String(a.id_profesor) === String(prof.id) && a.estado !== 'archivado');
+
+    // Bloques compartidos donde este profesor participa (solo lectura — se editan desde Materias)
+    const idsBloquesProf = bloquesCompDoc
+      .filter(d => String(d.id_profesor) === String(prof.id))
+      .map(d => d.id_bloque_compartido);
+    const bloquesCompProf = bloquesComp
+      .filter(b => idsBloquesProf.includes(b.id))
+      .map(b => ({
+        matNombre: mats.find(m => String(m.id) === String(b.id_materia))?.nombre || `Materia #${b.id_materia}`,
+        año: b.año,
+        modulos: Number(b.modulos_consecutivos) || 0,
+        estado: b.estado || 'borrador',
+      }));
+
+    fichaState = {
+      id: prof.id, apellido: prof.apellido||'', nombre: prof.nombre||'', email: prof.email||'',
+      horas_contrato: prof.horas_contrato||'', unidad_contrato: prof.unidad_contrato||'horas_reloj',
+      materias: Array.isArray(mProf) ? [...mProf] : [],
+      disponibilidad: JSON.parse(JSON.stringify(dProf)),
+      activo,
+      asignaciones: asigProf,
+      _asigAgregadas: [],   // {id_materia, id_curso} — pendientes de crear
+      _asigQuitadas:  [],   // ids de ASIGNACIONES a eliminar
+      _reclasificaciones: [], // {idAsig, tipo_reparto, modulos_asignados} — filas de OTROS profesores a reclasificar, pendientes de guardar
+      _mats: mats,
+      _cursos: cursos,
+      _profesoresCache: profs,
+    };
+
+    const nombresMats = mats.filter(m => isTruthy(m.activa)).map(m => m.nombre);
+
+    let rowsDisp = `<thead><tr><th class="blq-col" style="text-align:left;padding:6px 4px;font-size:12px;color:var(--color-text-muted)">Bloque</th>${DIAS.map(d=>`<th style="font-size:12px;color:var(--color-text-muted);padding:6px 4px;text-align:center">${d}</th>`).join('')}</tr></thead><tbody>`;
+    bl.forEach(b => {
+      rowsDisp += `<tr><td class="blq-label">${b.label}<span class="hora-label">${b.hora}</span></td>`;
+      DIAS.forEach(d => {
+        const on = fichaState.disponibilidad[d]?.[b.num];
+        rowsDisp += `<td><div class="disp-cell ${on?'on':''}" id="fd-${d}-${b.num}" onclick="toggleDispFicha('${d}',${b.num})"></div></td>`;
+      });
+      rowsDisp += '</tr>';
+    });
+    rowsDisp += '</tbody>';
+
+    cont.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem">
+        <button class="btn-back" onclick="volverListadoProf()"><i class="ti ti-arrow-left"></i> Volver</button>
+        <span style="font-size:13px;color:var(--color-text-muted)">Ficha del profesor</span>
+      </div>
+      <div class="ficha">
+        <div class="ficha-header">
+          <div class="ficha-avatar">${ini.toUpperCase()}</div>
+          <div><div class="ficha-nombre">${prof.apellido}, ${prof.nombre}</div><div class="ficha-email">${prof.email||'—'}</div></div>
+          <span class="badge ${activo?'badge-admin':'badge-inactivo'}" style="margin-left:auto">${activo?'Activo':'Inactivo'}</span>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Datos básicos</div>
+          <div class="field-row">
+            <div class="field"><label>Apellido</label><input id="fi-apellido" value="${fichaState.apellido}" /></div>
+            <div class="field"><label>Nombre</label><input id="fi-nombre" value="${fichaState.nombre}" /></div>
+          </div>
+          <div class="field"><label>Email institucional</label><input id="fi-email" type="email" value="${fichaState.email}" /></div>
+          <div class="field-row">
+            <div class="field"><label>Horas de contrato</label><input id="fi-horas" type="number" min="1" max="40" value="${fichaState.horas_contrato}" placeholder="—" /></div>
+            <div class="field"><label>Unidad</label>
+              <select id="fi-unidad">
+                <option value="horas_reloj" ${fichaState.unidad_contrato==='horas_reloj'||!fichaState.unidad_contrato?'selected':''}>Horas reloj</option>
+                <option value="modulos" ${fichaState.unidad_contrato==='modulos'?'selected':''}>Módulos</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Materias habilitadas</div>
+          <div class="materias-chips">${nombresMats.map(m => `<div class="chip ${fichaState.materias.includes(m)?'selected':''}" onclick="toggleMateriaFicha(this,'${m}')">${m}</div>`).join('')}</div>
+          <p style="font-size:12px;color:var(--color-text-faint);margin-top:8px">Seleccioná las materias que este profesor está habilitado para dictar.</p>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Bloques compartidos asignados</div>
+          <p style="font-size:12px;color:var(--color-text-muted);margin-bottom:12px">Materias que este profesor dicta junto con otros, a nivel de año completo. Se editan desde la ficha de la materia.</p>
+          ${bloquesCompProf.length === 0
+            ? `<p style="font-size:13px;color:var(--color-text-faint)">Sin bloques compartidos asignados.</p>`
+            : bloquesCompProf.map(b => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--color-border);border-radius:8px;margin-bottom:8px">
+                  <div>
+                    <strong>${b.matNombre}</strong> — ${b.año}° año completo
+                    <div style="font-size:12px;color:var(--color-text-muted)">${b.modulos} módulos consecutivos · ${b.estado}</div>
+                  </div>
+                </div>`).join('')
+          }
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Asignaciones (materia × curso)</div>
+          <p style="font-size:12px;color:var(--color-text-muted);margin-bottom:12px">Define en qué cursos dicta cada materia. El motor CSP usará esto para armar el horario.</p>
+          <div id="asig-tabla" style="margin-bottom:14px"></div>
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+            <div class="field" style="margin-bottom:0;min-width:180px">
+              <label>Materia</label>
+              <select id="asig-mat-sel" onchange="onAsigMatCambio()">
+                <option value="">— elegí una materia —</option>
+                ${fichaState.materias.map(m => {
+                  const matObj = mats.find(x => x.nombre === m);
+                  return `<option value="${matObj?.id||''}" data-nombre="${m}">${m}</option>`;
+                }).join('')}
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0;min-width:150px">
+              <label>Curso</label>
+              <select id="asig-cur-sel" disabled>
+                <option value="">— elegí una materia primero —</option>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0;min-width:150px">
+              <label>Tipo</label>
+              <select id="asig-tipo-sel" onchange="onAsigTipoSelCambio()">
+                <option value="completo">Completo</option>
+                <option value="parcial">Reparto parcial</option>
+                <option value="codocencia">Co-docencia</option>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0;min-width:110px;display:none" id="asig-mod-wrap">
+              <label>Módulos</label>
+              <input type="number" min="1" id="asig-mod-input" placeholder="ej: 2" />
+            </div>
+            <button onclick="agregarAsignacionProf()" style="flex-shrink:0"><i class="ti ti-plus"></i> Agregar</button>
+          </div>
+          <p style="font-size:12px;color:var(--color-text-faint);margin-top:8px">Si esta materia y curso ya tienen otro profesor asignado, vas a poder revisar y ajustar el reparto entre ambos antes de confirmar.</p>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Disponibilidad horaria</div>
+          <div class="select-all-row">
+            <button class="btn-sm" onclick="setAllDispFicha(true)">Marcar todos</button>
+            <button class="btn-sm" onclick="setAllDispFicha(false)">Limpiar todo</button>
+          </div>
+          <div style="overflow-x:auto"><table class="disp-table">${rowsDisp}</table></div>
+          <div class="legend"><div class="legend-item"><div class="legend-dot on"></div> Disponible</div><div class="legend-item"><div class="legend-dot off"></div> No disponible</div></div>
+        </div>
+
+        <div class="ficha-actions">
+          <button class="danger" onclick="confirmarBajaProf()">${activo ? '<i class="ti ti-user-off"></i> Dar de baja' : '<i class="ti ti-user-check"></i> Reactivar'}</button>
+          <button class="primary" onclick="guardarFichaProf()"><i class="ti ti-check"></i> Guardar cambios</button>
+        </div>
+      </div>`;
+    renderAsignacionesProf();
+  } catch(e) { cont.innerHTML = `<p style="color:var(--color-red-text);padding:1rem">Error: ${e.message}</p>`; }
+}
+
+function toggleMateriaFicha(el, nombre) {
+  if (fichaState.materias.includes(nombre)) { fichaState.materias = fichaState.materias.filter(m => m !== nombre); el.classList.remove('selected'); }
+  else { fichaState.materias.push(nombre); el.classList.add('selected'); }
+  renderSelectorAsigMat();
+}
+
+// Reconstruye el <select> de materia del bloque de asignaciones para que
+// siempre refleje el estado actual de "Materias habilitadas" (bug: quedaba
+// desactualizado si se editaban las materias sin recargar la ficha).
+function renderSelectorAsigMat() {
+  const sel = document.getElementById('asig-mat-sel');
+  if (!sel) return;
+  const valorPrevio = sel.value;
+  sel.innerHTML = '<option value="">— elegí una materia —</option>' +
+    fichaState.materias.map(m => {
+      const matObj = (fichaState._mats || []).find(x => x.nombre === m);
+      return `<option value="${matObj?.id||''}" data-nombre="${m}">${m}</option>`;
+    }).join('');
+  // Si la materia que estaba elegida ya no está habilitada, resetear el select de curso
+  const sigueDisponible = [...sel.options].some(o => o.value === valorPrevio && valorPrevio !== '');
+  if (sigueDisponible) {
+    sel.value = valorPrevio;
+  } else {
+    const curSel = document.getElementById('asig-cur-sel');
+    if (curSel) { curSel.innerHTML = '<option value="">— elegí una materia primero —</option>'; curSel.disabled = true; }
+  }
+}
+
+// ============================================================
+// PROFESORES — ASIGNACIONES (materia × curso)
+// ============================================================
+function renderAsignacionesProf() {
+  const cont = document.getElementById('asig-tabla');
+  if (!cont) return;
+  const asigs = fichaState.asignaciones || [];
+  if (!asigs.length) {
+    cont.innerHTML = '<p style="font-size:13px;color:var(--color-text-faint)">Sin asignaciones cargadas todavía.</p>';
+    return;
+  }
+  const rows = asigs.map(a => {
+    const mat = fichaState._mats?.find(m => String(m.id) === String(a.id_materia));
+    const cur = fichaState._cursos?.find(c => String(c.id) === String(a.id_curso));
+    const matLabel = mat ? mat.nombre : `Materia #${a.id_materia}`;
+    const curLabel = cur ? `${cur.año}° ${cur.division}${cur.nombre_personalizado?' — '+cur.nombre_personalizado:''}` : `Curso #${a.id_curso}`;
+    let sufijo = '';
+    if (a.tipo_reparto === 'parcial')   sufijo = ` <span style="color:var(--color-text-muted);font-size:12px">(reparto: ${a.modulos_asignados || '?'} mód.)</span>`;
+    if (a.tipo_reparto === 'codocencia') sufijo = ` <span style="color:var(--color-text-muted);font-size:12px">(co-docencia)</span>`;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:var(--radius);border:0.5px solid var(--color-border);margin-bottom:6px;font-size:13px">
+      <span><span style="font-weight:500">${matLabel}</span> <span style="color:var(--color-text-muted)">→</span> <span>${curLabel}</span>${sufijo}</span>
+      <button onclick="quitarAsignacionProf('${a.id}')" style="padding:3px 8px;font-size:11px;color:var(--color-red-text);border-color:#e8a0a0"><i class="ti ti-x"></i> Quitar</button>
+    </div>`;
+  }).join('');
+  cont.innerHTML = rows;
+}
+
+function onAsigMatCambio() {
+  const sel    = document.getElementById('asig-mat-sel');
+  const curSel = document.getElementById('asig-cur-sel');
+  const idMat  = sel.value;
+  if (!idMat) { curSel.innerHTML = '<option value="">— elegí una materia primero —</option>'; curSel.disabled = true; return; }
+
+  // Cursos activos, excluyendo los que ya tienen asignación para esta materia y este profesor
+  const yaAsignados = (fichaState.asignaciones || [])
+    .filter(a => String(a.id_materia) === String(idMat))
+    .map(a => String(a.id_curso));
+
+  const cursosDisp = (fichaState._cursos || [])
+    .filter(c => isTruthy(c.activo) && !yaAsignados.includes(String(c.id)))
+    .sort((a,b) => Number(a.año) - Number(b.año) || a.division.localeCompare(b.division));
+
+  if (!cursosDisp.length) {
+    curSel.innerHTML = '<option value="">Sin cursos disponibles</option>';
+    curSel.disabled = true;
+    return;
+  }
+  curSel.innerHTML = '<option value="">— elegí un curso —</option>' +
+    cursosDisp.map(c => `<option value="${c.id}">${c.año}° ${c.division}${c.nombre_personalizado?' — '+c.nombre_personalizado:''}</option>`).join('');
+  curSel.disabled = false;
+}
+
+function onAsigTipoSelCambio() {
+  const tipo = document.getElementById('asig-tipo-sel')?.value;
+  const wrap = document.getElementById('asig-mod-wrap');
+  if (wrap) wrap.style.display = (tipo === 'parcial') ? '' : 'none';
+}
+
+async function agregarAsignacionProf() {
+  const idMat = document.getElementById('asig-mat-sel')?.value;
+  const idCur = document.getElementById('asig-cur-sel')?.value;
+  const tipoSel = document.getElementById('asig-tipo-sel')?.value || 'completo';
+  const modInput = document.getElementById('asig-mod-input')?.value || '';
+  if (!idMat) { showToast('Elegí una materia', 'err'); return; }
+  if (!idCur) { showToast('Elegí un curso', 'err'); return; }
+  if (tipoSel === 'parcial' && (!modInput || Number(modInput) <= 0)) {
+    showToast('Ingresá la cantidad de módulos', 'err'); return;
+  }
+
+  const dup = (fichaState.asignaciones || []).find(a =>
+    String(a.id_materia) === String(idMat) && String(a.id_curso) === String(idCur)
+  );
+  if (dup) { showToast('Esa asignación ya existe', 'err'); return; }
+
+  let reparto;
+  try {
+    reparto = await consultarReparto(idMat, idCur);
+  } catch(e) { showToast('Error consultando reparto: ' + e.message, 'err'); return; }
+
+  if (reparto.filasExistentes.length === 0) {
+    // Único profesor hasta ahora: se respeta lo elegido en el selector individual,
+    // sin validar suma todavía (no hay con qué comparar). Se valida cuando se agregue un segundo.
+    _agregarAsignacionProfFinal(idMat, idCur, tipoSel, tipoSel === 'parcial' ? modInput : '');
+    return;
+  }
+
+  // Ya hay otro(s) profesor(es): siempre pasa por el modal de conciliación,
+  // sin importar lo elegido en el selector individual — ahí se ajusta la suma real.
+  abrirModalReparto(idMat, idCur, reparto, tipoSel, modInput);
+}
+
+function _agregarAsignacionProfFinal(idMat, idCur, tipoReparto, modulosAsignados) {
+  // Solo en memoria — se guarda al hacer "Guardar cambios"
+  const tempId = 'new_' + Date.now();
+  fichaState.asignaciones.push({
+    id: tempId, id_profesor: fichaState.id, id_materia: idMat, id_curso: idCur,
+    estado: 'borrador', tipo_reparto: tipoReparto, modulos_asignados: modulosAsignados
+  });
+  fichaState._asigAgregadas.push({
+    id_materia: idMat, id_curso: idCur, tipo_reparto: tipoReparto, modulos_asignados: modulosAsignados
+  });
+
+  renderAsignacionesProf();
+  document.getElementById('asig-mat-sel').value = '';
+  document.getElementById('asig-cur-sel').innerHTML = '<option value="">— elegí una materia primero —</option>';
+  document.getElementById('asig-cur-sel').disabled = true;
+  document.getElementById('asig-tipo-sel').value = 'completo';
+  document.getElementById('asig-mod-input').value = '';
+  onAsigTipoSelCambio();
+}
+
+async function consultarReparto(idMat, idCur) {
+  const url = `${API_URL}?accion=reparto&id_materia=${idMat}&id_curso=${idCur}`;
+  const res  = await fetch(url);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error);
+  return json.data;
+}
+
+// ============================================================
+// MODAL REPARTO / CO-DOCENCIA
+// ============================================================
+let _repartoState = null;
+
+function abrirModalReparto(idMat, idCur, reparto, tipoPrecargado, modulosPrecargados) {
+  const mat = fichaState._mats.find(m => String(m.id) === String(idMat));
+  const cur = fichaState._cursos.find(c => String(c.id) === String(idCur));
+  const matNombre = mat?.nombre || `Materia #${idMat}`;
+  const curLabel  = cur ? `${cur.año}° ${cur.division}` : `Curso #${idCur}`;
+
+  _repartoState = {
+    idMat, idCur, reparto,
+    // una entrada por cada fila existente que haya que reclasificar (si sigue en 'completo'),
+    // más la nueva asignación de este profesor
+    filas: reparto.filasExistentes.map(f => ({
+      esNueva: false, idAsig: f.id, idProfesor: f.id_profesor,
+      tipo: f.tipo_reparto, modulos: f.modulos_asignados || ''
+    })).concat([{
+      esNueva: true, idAsig: null, idProfesor: fichaState.id,
+      // Se precarga lo elegido en el selector individual, pero sigue siendo editable acá —
+      // el modal es el punto donde se concilia la suma real entre todos.
+      tipo: tipoPrecargado || '', modulos: (tipoPrecargado === 'parcial' ? modulosPrecargados : '') || ''
+    }])
+  };
+
+  document.getElementById('reparto-sub').textContent =
+    `${matNombre} → ${curLabel} ya tiene profesor(es) asignados. Definí cómo se reparte esta materia.`;
+  renderCuerpoReparto();
+  document.getElementById('reparto-error').style.display = 'none';
+  document.getElementById('modal-reparto').classList.remove('hidden');
+}
+
+function cerrarModalReparto() {
+  document.getElementById('modal-reparto').classList.add('hidden');
+  _repartoState = null;
+}
+
+function _nombreProfReparto(idProfesor) {
+  if (String(idProfesor) === String(fichaState.id)) {
+    return `${fichaState.apellido}, ${fichaState.nombre} (este profesor)`;
+  }
+  const p = (fichaState._profesoresCache || []).find(pr => String(pr.id) === String(idProfesor));
+  return p ? `${p.apellido}, ${p.nombre}` : `Profesor #${idProfesor}`;
+}
+
+function renderCuerpoReparto() {
+  const cont = document.getElementById('reparto-cuerpo');
+  cont.innerHTML = _repartoState.filas.map((f, i) => `
+    <div style="border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;margin-top:10px">
+      <div style="font-weight:500;margin-bottom:6px">${_nombreProfReparto(f.idProfesor)}</div>
+      <div class="field-row">
+        <div class="field" style="margin-bottom:0">
+          <label>Tipo</label>
+          <select onchange="onTipoRepartoChange(${i}, this.value)">
+            <option value="">— elegí —</option>
+            <option value="completo" ${f.tipo==='completo'?'selected':''}>Completo</option>
+            <option value="parcial" ${f.tipo==='parcial'?'selected':''}>Reparto parcial</option>
+            <option value="codocencia" ${f.tipo==='codocencia'?'selected':''}>Co-docencia</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0" id="reparto-mod-wrap-${i}">
+          ${f.tipo === 'parcial' ? `
+            <label>Módulos</label>
+            <input type="number" min="1" value="${f.modulos}" oninput="onModulosRepartoChange(${i}, this.value)" />
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('') + `
+    <p style="font-size:12px;color:var(--color-text-muted);margin-top:10px">
+      Carga horaria total de la materia: ${_repartoState.reparto.totalModulos} módulos semanales.
+    </p>`;
+}
+
+function onTipoRepartoChange(i, val) {
+  _repartoState.filas[i].tipo = val;
+  if (val !== 'parcial') _repartoState.filas[i].modulos = '';
+  renderCuerpoReparto();
+}
+
+function onModulosRepartoChange(i, val) {
+  _repartoState.filas[i].modulos = val;
+}
+
+function confirmarModalReparto() {
+  const errBox = document.getElementById('reparto-error');
+  errBox.style.display = 'none';
+
+  const { filas, reparto } = _repartoState;
+
+  if (filas.some(f => !f.tipo)) {
+    errBox.textContent = 'Elegí un tipo para cada profesor.';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  // No tiene sentido mezclar 'codocencia' con 'parcial' en la misma materia+curso
+  const tipos = new Set(filas.map(f => f.tipo));
+  if (tipos.has('codocencia') && tipos.has('parcial')) {
+    errBox.textContent = 'No se puede combinar co-docencia con reparto parcial en la misma materia y curso.';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  // Si hay reparto parcial, la suma de todas las filas parciales debe ser exactamente el total
+  if (tipos.has('parcial')) {
+    const parciales = filas.filter(f => f.tipo === 'parcial');
+    if (filas.some(f => f.tipo !== 'parcial')) {
+      errBox.textContent = 'Si una fila es reparto parcial, todas las filas de esta materia y curso deben serlo.';
+      errBox.style.display = 'block';
+      return;
+    }
+    const suma = parciales.reduce((s, f) => s + (Number(f.modulos) || 0), 0);
+    if (parciales.some(f => !f.modulos || Number(f.modulos) <= 0)) {
+      errBox.textContent = 'Ingresá los módulos de cada profesor (mayor a 0).';
+      errBox.style.display = 'block';
+      return;
+    }
+    if (suma !== reparto.totalModulos) {
+      errBox.textContent = `La suma de módulos (${suma}) debe ser igual al total de la materia (${reparto.totalModulos}).`;
+      errBox.style.display = 'block';
+      return;
+    }
+  }
+
+  // Todo OK: aplicar
+  const nueva = filas.find(f => f.esNueva);
+  _agregarAsignacionProfFinal(_repartoState.idMat, _repartoState.idCur, nueva.tipo, nueva.modulos || '');
+
+  // Las filas existentes que cambiaron de tipo quedan pendientes de guardar
+  filas.filter(f => !f.esNueva).forEach(f => {
+    const original = reparto.filasExistentes.find(o => String(o.id) === String(f.idAsig));
+    const cambioTipo = original.tipo_reparto !== f.tipo;
+    const cambioMod  = String(original.modulos_asignados || '') !== String(f.modulos || '');
+    if (cambioTipo || cambioMod) {
+      fichaState._reclasificaciones.push({
+        idAsig: f.idAsig, tipo_reparto: f.tipo, modulos_asignados: f.modulos || ''
+      });
+    }
+  });
+
+  cerrarModalReparto();
+}
+
+
+
+async function quitarAsignacionProf(idAsig) {
+  const asig = fichaState.asignaciones.find(a => String(a.id) === String(idAsig));
+  if (!asig) return;
+  const mat = fichaState._mats?.find(m => String(m.id) === String(asig.id_materia));
+  const cur = fichaState._cursos?.find(c => String(c.id) === String(asig.id_curso));
+  const label = `${mat?.nombre||'?'} → ${cur ? cur.año+'° '+cur.division : '?'}`;
+
+  confirmar('¿Quitar asignación?', label, async () => {
+    // Si era una agregada en esta sesión, solo la sacamos de _asigAgregadas
+    if (String(idAsig).startsWith('new_')) {
+      fichaState._asigAgregadas = fichaState._asigAgregadas.filter(a =>
+        !(String(a.id_materia) === String(asig.id_materia) && String(a.id_curso) === String(asig.id_curso))
+      );
+    } else {
+      // Era una asignación existente — marcarla para eliminar al guardar
+      fichaState._asigQuitadas.push(idAsig);
+    }
+    fichaState.asignaciones = fichaState.asignaciones.filter(a => String(a.id) !== String(idAsig));
+    renderAsignacionesProf();
+  });
+}
+function toggleDispFicha(dia, num) {
+  if (!fichaState.disponibilidad[dia]) fichaState.disponibilidad[dia] = {};
+  fichaState.disponibilidad[dia][num] = !fichaState.disponibilidad[dia][num];
+  const cell = document.getElementById(`fd-${dia}-${num}`);
+  if (cell) cell.className = 'disp-cell ' + (fichaState.disponibilidad[dia][num] ? 'on' : '');
+}
+async function setAllDispFicha(val) {
+  const bl = await getBloques();
+  DIAS.forEach(d => bl.forEach(b => {
+    if (!fichaState.disponibilidad[d]) fichaState.disponibilidad[d] = {};
+    fichaState.disponibilidad[d][b.num] = val;
+    const cell = document.getElementById(`fd-${d}-${b.num}`);
+    if (cell) cell.className = 'disp-cell ' + (val ? 'on' : '');
+  }));
+}
+
+function guardarFichaProf() {
+  confirmar('¿Confirmamos los cambios?', `Se actualizarán los datos de ${document.getElementById('fi-apellido')?.value || fichaState.apellido}.`, async () => {
+    try {
+      // 1. Guardar datos básicos del profesor
+      await apiPost('editar','profesores', {
+        apellido:        document.getElementById('fi-apellido')?.value.trim() || fichaState.apellido,
+        nombre:          document.getElementById('fi-nombre')?.value.trim()   || fichaState.nombre,
+        email:           document.getElementById('fi-email')?.value.trim()    || fichaState.email,
+        horas_contrato:  document.getElementById('fi-horas')?.value           || '',
+        unidad_contrato: document.getElementById('fi-unidad')?.value          || 'horas_reloj',
+        materias:        JSON.stringify(fichaState.materias),
+        disponibilidad:  JSON.stringify(fichaState.disponibilidad),
+      }, fichaState.id);
+
+      // 2. Eliminar asignaciones quitadas
+      for (const idAsig of fichaState._asigQuitadas) {
+        await apiPost('eliminar','asignaciones', {}, idAsig);
+      }
+
+      // 3. Crear asignaciones nuevas
+      for (const a of fichaState._asigAgregadas) {
+        await apiPost('crear','asignaciones', {
+          id_profesor: fichaState.id,
+          id_materia:  a.id_materia,
+          id_curso:    a.id_curso,
+          estado:      'borrador',
+          tipo_reparto: a.tipo_reparto || 'completo',
+          modulos_asignados: a.modulos_asignados || '',
+        });
+      }
+
+      // 4. Reclasificar asignaciones de OTROS profesores (detectado en el modal de reparto/co-docencia)
+      for (const r of fichaState._reclasificaciones) {
+        await apiPost('editar','asignaciones', {
+          tipo_reparto: r.tipo_reparto,
+          modulos_asignados: r.modulos_asignados,
+        }, r.idAsig);
+      }
+
+      delete _cache['PROFESORES'];
+      delete _cache['ASIGNACIONES'];
+      showToast('Cambios guardados');
+      volverListadoProf();
+    } catch(e) { showToast('Error: ' + e.message, 'err'); }
+  });
+}
+
+function confirmarBajaProf() {
+  const nuevo  = !fichaState.activo;
+  const accion = nuevo ? 'reactivar' : 'dar de baja';
+  confirmar('¿Confirmamos los cambios?', `Vas a ${accion} a ${fichaState.apellido}, ${fichaState.nombre}.`, async () => {
+    try {
+      await apiPost('editar','profesores', { activo: nuevo }, fichaState.id);
+      delete _cache['PROFESORES'];
+      showToast(nuevo ? 'Profesor reactivado' : 'Profesor dado de baja');
+      volverListadoProf();
+    } catch(e) { showToast('Error: ' + e.message, 'err'); }
+  });
+}
+
+// ============================================================
+// MATERIAS
+// ============================================================
+const AÑOS = ['1','2','3','4','5','6'];
+let matState = {};
+
+// ---------- modos ----------
+function mostrarModoMat(modo) {
+  document.getElementById('mat-listado').style.display = modo === 'listado' ? 'block' : 'none';
+  document.getElementById('mat-wizard').style.display  = modo === 'wizard'  ? 'block' : 'none';
+  document.getElementById('mat-ficha').style.display   = modo === 'ficha'   ? 'block' : 'none';
+}
+function volverListadoMat() { delete _cache['MATERIAS']; delete _cache['CARGA_HORARIA']; renderListadoMat(); }
+function mostrarWizardMat() { mostrarModoMat('wizard'); initWizardMat(); }
+
+// ---------- listado ----------
+let _matFiltros = { area:'', estado:'activas', tipo:'' };
+
+async function renderListadoMat() {
+  mostrarModoMat('listado');
+  const cont = document.getElementById('mat-listado');
+  cont.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div><p class="page-title">Materias</p><p class="page-sub" style="margin-bottom:0">Catálogo de materias</p></div>
+      <button class="primary" onclick="mostrarWizardMat()"><i class="ti ti-plus"></i> Nueva materia</button>
+    </div>
+    <div class="card" style="margin-bottom:1rem;padding:12px 16px">
+      <div class="list-toolbar">
+        <div class="field"><label>Área</label>
+          <select id="mf-area" onchange="aplicarFiltrosMat()">
+            <option value="">Todas las áreas</option>
+            <option>Ciencias Exactas</option><option>Ciencias Naturales</option><option>Ciencias Sociales</option>
+            <option>Lengua y Literatura</option><option>Lenguas Extranjeras</option><option>Educación Física</option>
+            <option>Arte</option><option>Formación Ética</option><option>Tecnología</option>
+          </select>
+        </div>
+        <div class="field"><label>Estado</label>
+          <select id="mf-estado" onchange="aplicarFiltrosMat()">
+            <option value="activas">Activas</option>
+            <option value="inactivas">Inactivas</option>
+            <option value="todas">Todas</option>
+          </select>
+        </div>
+        <div class="field"><label>Tipo</label>
+          <select id="mf-tipo" onchange="aplicarFiltrosMat()">
+            <option value="">Todas</option>
+            <option value="no_compartida">No compartida</option>
+            <option value="compartida">Compartida</option>
+          </select>
+        </div>
+        <button onclick="limpiarFiltrosMat()" class="btn-sm" style="align-self:flex-end"><i class="ti ti-x"></i> Limpiar</button>
+      </div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div id="mat-tabla-wrap"><div class="loading" style="padding:1.5rem"><div class="spinner"></div> Cargando...</div></div>
+    </div>`;
+  await cargarTablaMat();
+}
+
+async function cargarTablaMat() {
+  try {
+    const [mats, cargas, bloquesComp] = await Promise.all([
+      apiGet('leer','MATERIAS'), apiGet('leer','CARGA_HORARIA'), apiGet('leer','BLOQUES_COMPARTIDOS'),
+    ]);
+    // Restaurar filtros
+    const fa = document.getElementById('mf-area');   if (fa) fa.value = _matFiltros.area;
+    const fe = document.getElementById('mf-estado'); if (fe) fe.value = _matFiltros.estado;
+    const ft = document.getElementById('mf-tipo');   if (ft) ft.value = _matFiltros.tipo;
+    renderTablaMat(mats, cargas, bloquesComp);
+  } catch(e) {
+    const w = document.getElementById('mat-tabla-wrap');
+    if (w) w.innerHTML = `<p style="padding:1.5rem;color:var(--color-red-text)">Error: ${e.message}</p>`;
+  }
+}
+
+function aplicarFiltrosMat() {
+  _matFiltros.area   = document.getElementById('mf-area')?.value   || '';
+  _matFiltros.estado = document.getElementById('mf-estado')?.value || 'activas';
+  _matFiltros.tipo   = document.getElementById('mf-tipo')?.value   || '';
+  renderTablaMat(_cache['MATERIAS'] || [], _cache['CARGA_HORARIA'] || [], _cache['BLOQUES_COMPARTIDOS'] || []);
+}
+
+function limpiarFiltrosMat() {
+  _matFiltros = { area:'', estado:'activas', tipo:'' };
+  ['mf-area','mf-estado','mf-tipo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = id === 'mf-estado' ? 'activas' : ''; });
+  renderTablaMat(_cache['MATERIAS'] || [], _cache['CARGA_HORARIA'] || [], _cache['BLOQUES_COMPARTIDOS'] || []);
+}
+
+function renderTablaMat(mats, cargas, bloquesComp) {
+  let lista = [...mats];
+  if (_matFiltros.estado === 'activas')   lista = lista.filter(m => isTruthy(m.activa));
+  if (_matFiltros.estado === 'inactivas') lista = lista.filter(m => !isTruthy(m.activa));
+  if (_matFiltros.area)  lista = lista.filter(m => m.area === _matFiltros.area);
+  const idsConBloque = new Set((bloquesComp||[]).map(b => String(b.id_materia)));
+  if (_matFiltros.tipo === 'compartida')    lista = lista.filter(m => idsConBloque.has(String(m.id)));
+  if (_matFiltros.tipo === 'no_compartida') lista = lista.filter(m => !idsConBloque.has(String(m.id)));
+  lista.sort((a,b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+
+  const wrap = document.getElementById('mat-tabla-wrap');
+  if (!wrap) return;
+
+  if (!lista.length) {
+    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-book"></i>No hay materias que coincidan con los filtros.</div>`;
+    return;
+  }
+
+  const rows = lista.map(m => {
+    const activa = isTruthy(m.activa);
+    const comp   = idsConBloque.has(String(m.id));
+    // años en que se dicta
+    const años = cargas.filter(c => String(c.id_materia) === String(m.id)).map(c => c.año + '°').join(', ') || '—';
+    return `<tr class="${activa?'':'inactivo'}" onclick="abrirFichaMat(${m.id})" style="cursor:pointer;transition:background 0.1s" onmouseover="this.style.background='var(--color-bg)'" onmouseout="this.style.background=''">
+      <td><div style="font-weight:500">${m.nombre}</div></td>
+      <td style="color:var(--color-text-muted);font-size:12px">${m.area||'—'}</td>
+      <td style="font-size:12px">${años}</td>
+      <td>${comp ? '<span class="badge badge-editor">Compartida</span>' : '<span class="badge badge-viewer">No compartida</span>'}</td>
+      <td><span class="badge ${activa?'badge-admin':'badge-inactivo'}">${activa?'Activa':'Inactiva'}</span></td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<table class="prof-table">
+    <thead><tr><th>Materia</th><th>Área</th><th>Años</th><th>Tipo</th><th>Estado</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// ---------- wizard alta ----------
+function resetMatState() { matState = { step:1, carga:{} }; AÑOS.forEach(a => matState.carga[a] = { activo:false, bloques:0 }); }
+
+async function initWizardMat() { resetMatState(); renderStepsMat(); renderPanelMat(1); }
+
+function renderStepsMat() {
+  const labels = ['Datos','Carga horaria','Confirmar'];
+  document.getElementById('steps-mat').innerHTML = labels.map((l,i) => {
+    const n = i+1, cls = n < matState.step ? 'done' : n === matState.step ? 'active' : '';
+    return `<div class="step-dot ${cls}"><div class="dot-circle">${n < matState.step ? '<i class="ti ti-check" style="font-size:13px"></i>' : n}</div><span class="step-label">${l}</span></div>${i < labels.length-1 ? '<div class="step-line"></div>' : ''}`;
+  }).join('');
+}
+
+function renderPanelMat(step) {
+  matState.step = step; renderStepsMat();
+  const cont = document.getElementById('panels-mat');
+  if (step === 1) {
+    cont.innerHTML = `
+      <p class="panel-title">Datos de la materia</p>
+      <p class="panel-sub">Nombre, área curricular y tipo.</p>
+      <div class="field"><label>Nombre *</label><input id="m-nombre" value="${matState.nombre||''}" placeholder="Ej: Matemática" /></div>
+      <div class="field"><label>Área curricular <span style="color:var(--color-text-faint)">(opcional)</span></label>
+        <select id="m-area">
+          <option value="">Sin área asignada</option>
+          <option>Ciencias Exactas</option><option>Ciencias Naturales</option><option>Ciencias Sociales</option>
+          <option>Lengua y Literatura</option><option>Lenguas Extranjeras</option><option>Educación Física</option>
+          <option>Arte</option><option>Formación Ética</option><option>Tecnología</option>
+        </select>
+      </div>
+      <div class="btn-row"><span></span><button class="primary" onclick="avanzarMat2()">Siguiente <i class="ti ti-arrow-right"></i></button></div>`;
+    if (matState.area) document.getElementById('m-area').value = matState.area;
+  }
+  if (step === 2) {
+    const rows = AÑOS.map(a => {
+      const activo = matState.carga[a].activo, bl = matState.carga[a].bloques;
+      return `<tr>
+        <td style="font-size:13px;font-weight:500;padding:8px 12px">${a}° año</td>
+        <td style="text-align:center;padding:8px"><button class="btn-sm ${activo?'chip selected':'chip'}" onclick="toggleAñoWiz('${a}')">${activo?'Sí':'No'}</button></td>
+        <td style="text-align:center;padding:8px"><input type="number" id="bl-${a}" min="1" max="15" value="${bl||''}" placeholder="0" style="width:60px;text-align:center" ${activo?'':'disabled'} onchange="setBloquesAñoWiz('${a}',this.value)" /></td>
+      </tr>`;
+    }).join('');
+    cont.innerHTML = `
+      <p class="panel-title">Carga horaria por año</p>
+      <p class="panel-sub">Activá los años en que se dicta e ingresá los bloques semanales.</p>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr>
+          <th style="text-align:left;padding:6px 12px;font-size:12px;color:var(--color-text-muted);border-bottom:0.5px solid var(--color-border)">Año</th>
+          <th style="text-align:center;padding:6px;font-size:12px;color:var(--color-text-muted);border-bottom:0.5px solid var(--color-border)">¿Se dicta?</th>
+          <th style="text-align:center;padding:6px;font-size:12px;color:var(--color-text-muted);border-bottom:0.5px solid var(--color-border)">Bloques / semana</th>
+        </tr></thead><tbody>${rows}</tbody>
+      </table>
+      <div class="btn-row">
+        <button class="btn-back" onclick="renderPanelMat(1)"><i class="ti ti-arrow-left"></i> Atrás</button>
+        <button class="primary" onclick="renderPanelMat(3)">Siguiente <i class="ti ti-arrow-right"></i></button>
+      </div>`;
+  }
+  if (step === 3) {
+    const carga = AÑOS.filter(a => matState.carga[a].activo).map(a => `${a}° año: ${matState.carga[a].bloques} bloques`).join(' / ') || '—';
+    cont.innerHTML = `
+      <p class="panel-title">Confirmación</p>
+      <p class="panel-sub">Revisá los datos antes de guardar.</p>
+      <div class="summary-card">
+        <div class="summary-row"><span class="summary-label">Materia</span><span class="summary-value">${matState.nombre||'—'}</span></div>
+        <div class="summary-row"><span class="summary-label">Área</span><span class="summary-value">${matState.area||'Sin área'}</span></div>
+        <div class="summary-row"><span class="summary-label">Carga horaria</span><span class="summary-value" style="font-size:12px">${carga}</span></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-back" onclick="renderPanelMat(2)"><i class="ti ti-arrow-left"></i> Atrás</button>
+        <button class="primary" onclick="guardarMateriaNueva()"><i class="ti ti-check"></i> Guardar materia</button>
+      </div>`;
+  }
+  if (step === 4) {
+    cont.innerHTML = `<div class="success-state"><div class="success-icon"><i class="ti ti-check"></i></div><p class="success-title">Materia guardada</p><p class="success-sub">Los datos fueron guardados correctamente.</p><div style="display:flex;gap:8px;justify-content:center"><button onclick="initWizardMat()"><i class="ti ti-plus"></i> Cargar otra</button><button class="primary" onclick="volverListadoMat()"><i class="ti ti-list"></i> Ver listado</button></div></div>`;
+  }
+}
+
+async function avanzarMat2() {
+  matState.nombre = document.getElementById('m-nombre')?.value.trim() || '';
+  matState.area   = document.getElementById('m-area')?.value || '';
+  // nombre y área ya están en matState desde avanzarMat2
+  if (!matState.nombre) { showToast('Ingresá el nombre de la materia', 'err'); return; }
+
+  // Verificar duplicados por nombre (case-insensitive)
+  try {
+    const mats = await apiGet('leer', 'MATERIAS');
+    const nombreLower = matState.nombre.toLowerCase();
+    const existente = mats.find(m => (m.nombre || '').toLowerCase() === nombreLower);
+
+    if (existente) {
+      if (isTruthy(existente.activa)) {
+        showToast(`Ya existe una materia activa con el nombre "${existente.nombre}".`, 'err');
+        return;
+      } else {
+        // Existe pero está inactiva — ofrecer reactivar
+        confirmar(
+          `"${existente.nombre}" ya existe pero está inactiva`,
+          '¿Querés reactivarla en lugar de crear una nueva?',
+          async () => {
+            try {
+              await apiPost('editar', 'materias', { activa: true }, existente.id);
+              delete _cache['MATERIAS'];
+              showToast(`"${existente.nombre}" reactivada`);
+              mostrarModoMat('listado');
+              renderListadoMat();
+            } catch(e) { showToast('Error: ' + e.message, 'err'); }
+          }
+        );
+        return;
+      }
+    }
+  } catch(e) {
+    // Si falla la consulta, dejamos pasar — no bloqueamos el alta por un error de red
+    console.warn('No se pudo verificar duplicados:', e.message);
+  }
+
+  renderPanelMat(2);
+}
+function toggleAñoWiz(a) { matState.carga[a].activo = !matState.carga[a].activo; renderPanelMat(2); }
+function setBloquesAñoWiz(a, val) { matState.carga[a].bloques = parseInt(val) || 0; }
+
+async function guardarMateriaNueva() {
+  try {
+    const mat = await apiPost('crear','materias',{ nombre: matState.nombre, area: matState.area, activa: true });
+    for (const a of AÑOS) {
+      if (matState.carga[a].activo && matState.carga[a].bloques > 0)
+        await apiPost('crear','carga_horaria',{ id_materia: mat.id, año: a, bloques_semanales: matState.carga[a].bloques, duracion_override_min:'' });
+    }
+    delete _cache['MATERIAS']; delete _cache['CARGA_HORARIA'];
+    renderPanelMat(4); showToast('Materia guardada correctamente');
+  } catch(e) { showToast('Error: ' + e.message, 'err'); }
+}
+
+// ---------- ficha editable ----------
+let fichaMatState = {};
+
+async function abrirFichaMat(id) {
+  mostrarModoMat('ficha');
+  const cont = document.getElementById('mat-ficha');
+  cont.innerHTML = '<div class="loading" style="padding:2rem"><div class="spinner"></div> Cargando ficha...</div>';
+  try {
+    const [mats, cargas, bloquesComp, bloquesCompDoc, profs, asignaciones, cursos] = await Promise.all([
+      apiGet('leer','MATERIAS'),
+      apiGet('leer','CARGA_HORARIA'),
+      apiGet('leer','BLOQUES_COMPARTIDOS'),
+      apiGet('leer','BLOQUES_COMPARTIDOS_DOCENTES'),
+      apiGet('leer','PROFESORES'),
+      apiGet('leer','ASIGNACIONES'),
+      apiGet('leer','CURSOS'),
+    ]);
+    const mat = mats.find(m => String(m.id) === String(id));
+    if (!mat) throw new Error('Materia no encontrada');
+
+    const cargaMat = cargas.filter(c => String(c.id_materia) === String(mat.id));
+    const activa   = isTruthy(mat.activa);
+
+    // Estado editable: mapa año → { id_carga, bloques, activo }
+    const cargaEdit = {};
+    AÑOS.forEach(a => cargaEdit[a] = { id_carga: null, bloques: 0, activo: false });
+    cargaMat.forEach(c => {
+      const a = String(c.año);
+      if (cargaEdit[a] !== undefined) {
+        cargaEdit[a] = { id_carga: c.id, bloques: Number(c.bloques_semanales) || 0, activo: true };
+      }
+    });
+
+    // Bloques compartidos de esta materia, uno por año como máximo
+    const bloquesMat = bloquesComp.filter(b => String(b.id_materia) === String(mat.id));
+
+    // Estado editable: mapa año → { id_bloque, modulos_consecutivos, activo, profesores:[{id,id_profesor}] }
+    const compartidoEdit = {};
+    AÑOS.forEach(a => compartidoEdit[a] = { id_bloque: null, modulos_consecutivos: 0, activo: false, profesores: [] });
+    bloquesMat.forEach(b => {
+      const a = String(b.año);
+      if (compartidoEdit[a] !== undefined) {
+        const docs = bloquesCompDoc.filter(d => String(d.id_bloque_compartido) === String(b.id));
+        compartidoEdit[a] = {
+          id_bloque: b.id,
+          modulos_consecutivos: Number(b.modulos_consecutivos) || 0,
+          activo: true,
+          profesores: docs.map(d => ({ id: d.id, id_profesor: d.id_profesor })),
+        };
+      }
+    });
+
+    // Asignaciones activas de esta materia → para la sección "Quién la da y en qué curso"
+    const asigMat = asignaciones.filter(a =>
+      String(a.id_materia) === String(mat.id) && a.estado !== 'archivado'
+    );
+
+    fichaMatState = {
+      id: mat.id, nombre: mat.nombre||'', area: mat.area||'', activa,
+      cargaEdit,
+      compartidoEdit,
+      compartidoDocEliminados: [],
+      _profesores: profs.filter(p => isTruthy(p.activo)),
+      _asigMat: asigMat,
+      _cursos: cursos,
+    };
+
+    cont.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem">
+        <button class="btn-back" onclick="volverListadoMat()"><i class="ti ti-arrow-left"></i> Volver</button>
+        <span style="font-size:13px;color:var(--color-text-muted)">Ficha de materia</span>
+      </div>
+      <div class="ficha">
+        <div class="ficha-header">
+          <div class="ficha-avatar" style="border-radius:var(--radius);width:44px;height:44px;font-size:13px"><i class="ti ti-book" style="font-size:20px"></i></div>
+          <div><div class="ficha-nombre">${mat.nombre}</div><div class="ficha-email">${mat.area||'Sin área'}</div></div>
+          <span class="badge ${activa?'badge-admin':'badge-inactivo'}" style="margin-left:auto">${activa?'Activa':'Inactiva'}</span>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Datos básicos</div>
+          <div class="field"><label>Nombre de la materia</label><input id="fi-mat-nombre" value="${fichaMatState.nombre}" /></div>
+          <div class="field"><label>Área curricular</label>
+            <select id="fi-mat-area">
+              <option value="">Sin área asignada</option>
+              <option>Ciencias Exactas</option><option>Ciencias Naturales</option><option>Ciencias Sociales</option>
+              <option>Lengua y Literatura</option><option>Lenguas Extranjeras</option><option>Educación Física</option>
+              <option>Arte</option><option>Formación Ética</option><option>Tecnología</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- SECCIÓN BLOQUES COMPARTIDOS -->
+        <div class="ficha-section">
+          <div class="ficha-section-title">Bloques compartidos</div>
+          <p style="font-size:12px;color:var(--color-text-muted);margin-bottom:12px">
+            Marcá los años en los que esta materia se dicta con varios profesores simultáneos
+            al nivel completo (todas las divisiones juntas, alumnos mezclados). Solo aparecen
+            los años donde la materia tiene carga horaria activa.
+          </p>
+          <div id="fi-compartido-body"></div>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Carga horaria por año</div>
+          <table style="width:100%;border-collapse:collapse" id="tabla-carga-ficha">
+            <thead><tr>
+              <th style="text-align:left;padding:6px 12px;font-size:12px;color:var(--color-text-muted);border-bottom:0.5px solid var(--color-border)">Año</th>
+              <th style="text-align:center;padding:6px;font-size:12px;color:var(--color-text-muted);border-bottom:0.5px solid var(--color-border)">¿Se dicta?</th>
+              <th style="text-align:center;padding:6px;font-size:12px;color:var(--color-text-muted);border-bottom:0.5px solid var(--color-border)">Bloques / semana</th>
+            </tr></thead>
+            <tbody id="carga-ficha-body"></tbody>
+          </table>
+        </div>
+
+        <div class="ficha-section" id="fi-asig-section">
+          <div class="ficha-section-title">Docentes asignados</div>
+          <div id="fi-asig-body"></div>
+        </div>
+
+        <div class="ficha-actions">
+          <button class="danger" onclick="confirmarBajaMat()">${activa?'<i class="ti ti-eye-off"></i> Dar de baja':'<i class="ti ti-eye"></i> Reactivar'}</button>
+          <button class="primary" onclick="guardarFichaMat()"><i class="ti ti-check"></i> Guardar cambios</button>
+        </div>
+      </div>`;
+
+    // Setear área en el select
+    document.getElementById('fi-mat-area').value = fichaMatState.area;
+
+    // Renderizar tabla de carga
+    renderCargaFichaBody();
+
+    // Renderizar docentes compartidos
+    renderCompartidoBody();
+
+    // Renderizar asignaciones activas
+    renderAsigMat();
+
+  } catch(e) { cont.innerHTML = `<p style="color:var(--color-red-text);padding:1rem">Error: ${e.message}</p>`; }
+}
+
+function renderCargaFichaBody() {
+  const tbody = document.getElementById('carga-ficha-body');
+  if (!tbody) return;
+  tbody.innerHTML = AÑOS.map(a => {
+    const { activo, bloques } = fichaMatState.cargaEdit[a];
+    return `<tr>
+      <td style="font-size:13px;font-weight:500;padding:8px 12px">${a}° año</td>
+      <td style="text-align:center;padding:8px">
+        <button class="btn-sm ${activo?'chip selected':'chip'}" onclick="toggleAñoFichaMat('${a}')">${activo?'Sí':'No'}</button>
+      </td>
+      <td style="text-align:center;padding:8px">
+        <input type="number" id="fc-bl-${a}" min="1" max="15" value="${bloques||''}" placeholder="0"
+          style="width:60px;text-align:center" ${activo?'':'disabled'}
+          onchange="setBloquesAñoFichaMat('${a}',this.value)" />
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleAñoFichaMat(a) {
+  fichaMatState.cargaEdit[a].activo = !fichaMatState.cargaEdit[a].activo;
+  renderCargaFichaBody();
+  renderCompartidoBody();
+}
+function setBloquesAñoFichaMat(a, val) { fichaMatState.cargaEdit[a].bloques = parseInt(val) || 0; }
+
+// ---- Bloques compartidos (por año) ----
+
+function renderCompartidoBody() {
+  const cont = document.getElementById('fi-compartido-body');
+  if (!cont) return;
+  const añosConCarga = AÑOS.filter(a => fichaMatState.cargaEdit[a].activo);
+
+  if (!añosConCarga.length) {
+    cont.innerHTML = `<p style="font-size:12px;color:var(--color-text-faint)">
+      Activá la materia en al menos un año (más abajo, en "Carga horaria por año") para poder marcarlo como bloque compartido.
+    </p>`;
+    return;
+  }
+
+  cont.innerHTML = añosConCarga.map(a => _renderCompartidoAño(a)).join('');
+}
+
+function _renderCompartidoAño(a) {
+  const st = fichaMatState.compartidoEdit[a];
+  return `<div style="border:0.5px solid var(--color-border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:10px;justify-content:space-between">
+      <span style="font-size:13px;font-weight:500">${a}° año</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:12px;color:var(--color-text-muted)">Módulos consecutivos</label>
+        <input type="number" min="1" max="10" value="${st.modulos_consecutivos||''}" placeholder="—"
+          style="width:56px;text-align:center" ${st.activo?'':'disabled'}
+          id="fc-modcons-${a}" onchange="setModConsecutivos('${a}',this.value)" />
+        <button class="btn-sm ${st.activo?'chip selected':'chip'}" onclick="toggleCompartidoAño('${a}')">
+          ${st.activo?'Bloque compartido':'No compartido'}
+        </button>
+      </div>
+    </div>
+    <div id="fc-profs-${a}" style="margin-top:10px;${st.activo?'':'display:none'}">
+      ${_renderCompartidoProfesores(a)}
+    </div>
+  </div>`;
+}
+
+function _renderCompartidoProfesores(a) {
+  const st = fichaMatState.compartidoEdit[a];
+  const filas = st.profesores.map(p => _renderCompartidoProfRow(a, p)).join('');
+  return `<table style="width:100%;border-collapse:collapse;margin-bottom:8px">
+      <tbody id="fc-profs-tbody-${a}">${filas}</tbody>
+    </table>
+    <button onclick="agregarCompartidoProf('${a}')" style="font-size:12px;padding:4px 10px">
+      <i class="ti ti-plus"></i> Agregar profesor
+    </button>`;
+}
+
+function _renderCompartidoProfRow(a, p) {
+  const idFila = p.id || p._tempId;
+  const profsOptions = fichaMatState._profesores.map(pr =>
+    `<option value="${pr.id}" ${String(pr.id) === String(p.id_profesor) ? 'selected' : ''}>${pr.apellido}, ${pr.nombre}</option>`
+  ).join('');
+  return `<tr data-fila-id="${idFila}">
+    <td style="padding:3px 6px">
+      <select style="width:100%;font-size:12px;padding:4px 8px" onchange="setCompartidoProf('${a}','${idFila}',this.value)">
+        <option value="">— Seleccioná un profesor —</option>
+        ${profsOptions}
+      </select>
+    </td>
+    <td style="padding:3px 4px;text-align:center;width:32px">
+      <button onclick="quitarCompartidoProf('${a}','${idFila}')"
+        style="padding:2px 6px;font-size:11px;color:var(--color-red-text)">
+        <i class="ti ti-trash"></i>
+      </button>
+    </td>
+  </tr>`;
+}
+
+function toggleCompartidoAño(a) {
+  fichaMatState.compartidoEdit[a].activo = !fichaMatState.compartidoEdit[a].activo;
+  renderCompartidoBody();
+}
+
+function setModConsecutivos(a, val) {
+  fichaMatState.compartidoEdit[a].modulos_consecutivos = parseInt(val) || 0;
+}
+
+function agregarCompartidoProf(a) {
+  const tempId = 'new_' + Date.now();
+  fichaMatState.compartidoEdit[a].profesores.push({ _tempId: tempId, id: tempId, id_profesor: '' });
+  renderCompartidoBody();
+}
+
+function setCompartidoProf(a, idFila, idProfesor) {
+  const fila = fichaMatState.compartidoEdit[a].profesores.find(p => String(p.id||p._tempId) === String(idFila));
+  if (fila) fila.id_profesor = idProfesor;
+}
+
+function quitarCompartidoProf(a, idFila) {
+  const st = fichaMatState.compartidoEdit[a];
+  if (!String(idFila).startsWith('new_')) {
+    fichaMatState.compartidoDocEliminados.push(idFila);
+  }
+  st.profesores = st.profesores.filter(p => String(p.id||p._tempId) !== String(idFila));
+  renderCompartidoBody();
+}
+
+function renderAsigMat() {
+  const cont = document.getElementById('fi-asig-body');
+  if (!cont) return;
+  const asig    = fichaMatState._asigMat || [];
+  const profs   = fichaMatState._profesores || [];
+  const cursos  = fichaMatState._cursos || [];
+
+  if (asig.length === 0) {
+    cont.innerHTML = `<p style="font-size:12px;color:var(--color-text-faint);padding:4px 0">
+      Sin asignaciones activas para esta materia.
+    </p>`;
+    return;
+  }
+
+  // Agrupar por profesor
+  const porProf = {};
+  asig.forEach(a => {
+    const pid = String(a.id_profesor);
+    if (!porProf[pid]) porProf[pid] = [];
+    porProf[pid].push(a);
+  });
+
+  const filas = Object.entries(porProf).map(([pid, asigs]) => {
+    const prof = profs.find(p => String(p.id) === pid);
+    const nombreProf = prof ? `${prof.apellido}, ${prof.nombre}` : `Profesor id=${pid}`;
+
+    const cursosList = asigs.map(a => {
+      const curso = cursos.find(c => String(c.id) === String(a.id_curso));
+      if (!curso) return `Curso id=${a.id_curso}`;
+      const nombre = curso.nombre_personalizado
+        ? `${curso.año}°${curso.division} — ${curso.nombre_personalizado}`
+        : `${curso.año}°${curso.division}`;
+      return `<span class="badge" style="background:var(--color-blue-bg);color:var(--color-blue-text);margin:2px">${nombre}</span>`;
+    }).join(' ');
+
+    return `<tr>
+      <td style="padding:8px 12px;font-size:13px;font-weight:500;white-space:nowrap">${nombreProf}</td>
+      <td style="padding:8px 12px">${cursosList}</td>
+    </tr>`;
+  }).join('');
+
+  cont.innerHTML = `
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr style="font-size:11px;color:var(--color-text-muted);border-bottom:0.5px solid var(--color-border)">
+          <th style="padding:6px 12px;font-weight:500;text-align:left">Profesor</th>
+          <th style="padding:6px 12px;font-weight:500;text-align:left">Cursos</th>
+        </tr>
+      </thead>
+      <tbody>${filas}</tbody>
+    </table>`;
+}
+
+function guardarFichaMat() {
+  confirmar('¿Confirmamos los cambios?', `Se actualizarán los datos de ${document.getElementById('fi-mat-nombre')?.value || fichaMatState.nombre}.`, async () => {
+    try {
+      // 1. Actualizar datos básicos de la materia
+      await apiPost('editar','materias', {
+        nombre: document.getElementById('fi-mat-nombre')?.value.trim() || fichaMatState.nombre,
+        area:       document.getElementById('fi-mat-area')?.value || '',
+      }, fichaMatState.id);
+
+      // 2. Sincronizar carga horaria año por año
+      const cargas = _cache['CARGA_HORARIA'] || await apiGet('leer','CARGA_HORARIA');
+      for (const a of AÑOS) {
+        const { id_carga, activo, bloques } = fichaMatState.cargaEdit[a];
+        const blInput = parseInt(document.getElementById(`fc-bl-${a}`)?.value) || bloques;
+        if (activo && blInput > 0) {
+          if (id_carga) {
+            await apiPost('editar','carga_horaria', { bloques_semanales: blInput }, id_carga);
+          } else {
+            await apiPost('crear','carga_horaria', { id_materia: fichaMatState.id, año: a, bloques_semanales: blInput, duracion_override_min:'' });
+          }
+        } else if (!activo && id_carga) {
+          await apiPost('eliminar','carga_horaria', {}, id_carga);
+        }
+      }
+
+      // 3. Sincronizar bloques compartidos, año por año
+      for (const a of AÑOS) {
+        const st = fichaMatState.compartidoEdit[a];
+        const modConsInput = parseInt(document.getElementById(`fc-modcons-${a}`)?.value) || st.modulos_consecutivos;
+
+        if (st.activo) {
+          // Crear o actualizar la fila de BLOQUES_COMPARTIDOS para este año
+          let idBloque = st.id_bloque;
+          if (idBloque) {
+            await apiPost('editar','bloques_compartidos', { modulos_consecutivos: modConsInput }, idBloque);
+          } else {
+            const creado = await apiPost('crear','bloques_compartidos', {
+              id_materia: fichaMatState.id, año: a, modulos_consecutivos: modConsInput, estado: 'borrador',
+            });
+            idBloque = creado.id;
+          }
+          // Eliminar los docentes marcados para borrar (de cualquier año)
+          for (const idDoc of fichaMatState.compartidoDocEliminados) {
+            await apiPost('eliminar','bloques_compartidos_docentes', {}, idDoc);
+          }
+          fichaMatState.compartidoDocEliminados = [];
+          // Crear los profesores nuevos (id empieza con 'new_')
+          for (const p of st.profesores) {
+            if (!String(p.id).startsWith('new_')) continue;
+            if (!p.id_profesor) continue;
+            await apiPost('crear','bloques_compartidos_docentes', {
+              id_bloque_compartido: idBloque,
+              id_profesor: p.id_profesor,
+            });
+          }
+        } else if (st.id_bloque) {
+          // Se desactivó un año que antes era compartido: eliminar sus docentes y el bloque
+          for (const p of st.profesores) {
+            if (!String(p.id).startsWith('new_')) {
+              await apiPost('eliminar','bloques_compartidos_docentes', {}, p.id);
+            }
+          }
+          await apiPost('eliminar','bloques_compartidos', {}, st.id_bloque);
+        }
+      }
+
+      delete _cache['MATERIAS']; delete _cache['CARGA_HORARIA'];
+      delete _cache['BLOQUES_COMPARTIDOS']; delete _cache['BLOQUES_COMPARTIDOS_DOCENTES'];
+      showToast('Cambios guardados');
+      volverListadoMat();
+    } catch(e) { showToast('Error: ' + e.message, 'err'); }
+  });
+}
+
+function confirmarBajaMat() {
+  const nuevo  = !fichaMatState.activa;
+  const accion = nuevo ? 'reactivar' : 'dar de baja';
+  confirmar('¿Confirmamos los cambios?', `Vas a ${accion} la materia ${fichaMatState.nombre}.`, async () => {
+    try {
+      await apiPost('editar','materias', { activa: nuevo }, fichaMatState.id);
+      delete _cache['MATERIAS'];
+      showToast(nuevo ? 'Materia reactivada' : 'Materia dada de baja');
+      volverListadoMat();
+    } catch(e) { showToast('Error: ' + e.message, 'err'); }
+  });
+}
+// ============================================================
+// CURSOS — LISTADO (cards por año)
+// ============================================================
+async function renderListadoCur() {
+  document.getElementById('cur-listado').style.display = '';
+  document.getElementById('cur-wizard').style.display  = 'none';
+  document.getElementById('cur-ficha').style.display   = 'none';
+
+  const cont = document.getElementById('cur-listado');
+  cont.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem">
+      <div>
+        <p class="page-title">Cursos</p>
+        <p class="page-sub">18 cursos precargados. Hacé clic en una card para ver el detalle.</p>
+      </div>
+      <button class="primary" onclick="abrirWizardCur()"><i class="ti ti-plus"></i> Nuevo curso</button>
+    </div>
+    <div id="cursos-cards"><div class="loading"><div class="spinner"></div> Cargando cursos...</div></div>`;
+
+  try {
+    const [cursos, estructuras] = await Promise.all([
+      apiGet('leer','CURSOS'),
+      apiGet('leer','ESTRUCTURA_HORARIA').catch(()=>[])
+    ]);
+    _estructurasCur = estructuras;
+    const porAño = {};
+    cursos.forEach(c => { if (!porAño[c.año]) porAño[c.año] = []; porAño[c.año].push(c); });
+
+    document.getElementById('cursos-cards').innerHTML = ['1','2','3','4','5','6'].map(a => {
+      const lista = (porAño[a] || []).sort((x,y) => (x.division||'').localeCompare(y.division||''));
+      if (!lista.length) return '';
+      return `<div style="margin-bottom:1.75rem">
+        <div style="font-size:12px;font-weight:500;color:var(--color-text-muted);padding-bottom:6px;border-bottom:0.5px solid var(--color-border);margin-bottom:10px">${a}° año</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          ${lista.map(c => {
+            const activo  = isTruthy(c.activo);
+            const nombre  = c.nombre_personalizado ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px">${c.nombre_personalizado}</div>` : '';
+            const estr    = estructuras.find(e => String(e.id) === String(c.id_estructura));
+            const eLabel  = estr ? estr.nombre : 'Default';
+            return `<div class="card cur-card" onclick="abrirFichaCur('${c.id}')" style="width:130px;cursor:pointer;opacity:${activo?1:0.55};transition:box-shadow 0.15s">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+                <span style="font-size:17px;font-weight:600">${c.año}° ${c.division}</span>
+                <span class="badge ${activo?'badge-admin':'badge-viewer'}" style="margin-top:2px">${activo?'✓':'-'}</span>
+              </div>
+              ${nombre}
+              <div style="font-size:11px;color:var(--color-text-faint);margin-top:8px"><i class="ti ti-clock" style="font-size:10px"></i> ${eLabel}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('cursos-cards').innerHTML = `<p style="color:var(--color-red-text)">Error: ${e.message}</p>`;
+  }
+}
+
+let _estructurasCur = [];
+
+// ============================================================
+// CURSOS — FICHA
+// ============================================================
+async function abrirFichaCur(id) {
+  document.getElementById('cur-listado').style.display = 'none';
+  document.getElementById('cur-wizard').style.display  = 'none';
+  const cont = document.getElementById('cur-ficha');
+  cont.style.display = '';
+  cont.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando...</div>';
+
+  try {
+    const [cursos, estructuras] = await Promise.all([
+      apiGet('leer','CURSOS'),
+      apiGet('leer','ESTRUCTURA_HORARIA').catch(()=>[])
+    ]);
+    const c = cursos.find(x => String(x.id) === String(id));
+    if (!c) throw new Error('Curso no encontrado');
+    const activo = isTruthy(c.activo);
+
+    const optsEstr = estructuras.map(e =>
+      `<option value="${e.id}" ${String(e.id) === String(c.id_estructura) ? 'selected' : ''}>${e.nombre}</option>`
+    ).join('');
+
+    cont.innerHTML = `
+      <div class="ficha">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem">
+          <button class="btn-back" onclick="volverListadoCur()"><i class="ti ti-arrow-left"></i> Volver</button>
+          <span style="font-size:13px;color:var(--color-text-muted)">Ficha de curso</span>
+        </div>
+
+        <div class="ficha-header">
+          <div class="ficha-avatar" style="font-size:20px;font-weight:700">${c.año}°${c.division}</div>
+          <div>
+            <div class="ficha-nombre">${c.año}° año — División ${c.division}</div>
+            <div class="ficha-email">ID: ${c.id}</div>
+          </div>
+          <span class="badge ${activo?'badge-admin':'badge-viewer'}" style="margin-left:auto">${activo?'Activo':'Inactivo'}</span>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Datos del curso</div>
+          <div class="field">
+            <label>Año</label>
+            <input type="text" value="${c.año}°" disabled style="background:var(--color-bg);color:var(--color-text-muted)" />
+          </div>
+          <div class="field">
+            <label>División</label>
+            <input type="text" value="${c.division}" disabled style="background:var(--color-bg);color:var(--color-text-muted)" />
+          </div>
+          <div class="field">
+            <label>Nombre personalizado <span style="color:var(--color-text-faint)">(opcional)</span></label>
+            <input type="text" id="fc-nombre" value="${c.nombre_personalizado||''}" placeholder="Ej: 3°B Bilingüe" />
+          </div>
+        </div>
+
+        <div class="ficha-section">
+          <div class="ficha-section-title">Estructura horaria</div>
+          <div class="field">
+            <label>Estructura asignada</label>
+            <select id="fc-estructura">
+              <option value="">Default del sistema</option>
+              ${optsEstr}
+            </select>
+          </div>
+          <p style="font-size:12px;color:var(--color-text-faint);margin-top:-6px">Si no seleccionás ninguna, el curso usa la estructura default.</p>
+        </div>
+
+        <div class="ficha-actions">
+          <button class="${activo?'danger':''}" onclick="toggleFichaCur('${c.id}',${!activo})">
+            <i class="ti ti-${activo?'eye-off':'eye'}"></i> ${activo?'Desactivar curso':'Reactivar curso'}
+          </button>
+          <button class="primary" onclick="guardarFichaCur('${c.id}')">
+            <i class="ti ti-device-floppy"></i> Guardar cambios
+          </button>
+        </div>
+      </div>`;
+  } catch(e) {
+    cont.innerHTML = `<p style="color:var(--color-red-text)">Error: ${e.message}</p>`;
+  }
+}
+
+async function guardarFichaCur(id) {
+  const nombre    = document.getElementById('fc-nombre').value.trim();
+  const estructura = document.getElementById('fc-estructura').value;
+  confirmar('¿Guardamos los cambios?', `Curso actualizado.`, async () => {
+    try {
+      await apiPost('editar','cursos', {
+        nombre_personalizado: nombre,
+        id_estructura: estructura || null
+      }, id);
+      delete _cache['CURSOS'];
+      showToast('Curso guardado');
+      volverListadoCur();
+    } catch(e) { showToast('Error: ' + e.message, 'err'); }
+  });
+}
+
+async function toggleFichaCur(id, nuevoActivo) {
+  const accion = nuevoActivo ? 'reactivar' : 'desactivar';
+  confirmar(`¿${nuevoActivo?'Reactivar':'Desactivar'} este curso?`,
+    `El curso quedará ${nuevoActivo?'activo':'inactivo'}.`,
+    async () => {
+      try {
+        await apiPost('editar','cursos',{ activo: nuevoActivo }, id);
+        delete _cache['CURSOS'];
+        showToast(`Curso ${accion}do`);
+        volverListadoCur();
+      } catch(e) { showToast('Error: ' + e.message, 'err'); }
+    }
+  );
+}
+
+function volverListadoCur() {
+  delete _cache['CURSOS'];
+  renderListadoCur();
+}
+
+// ============================================================
+// CURSOS — WIZARD DE ALTA
+// ============================================================
+let _wizCur = { paso: 0, datos: {} };
+
+async function abrirWizardCur() {
+  document.getElementById('cur-listado').style.display = 'none';
+  document.getElementById('cur-ficha').style.display   = 'none';
+  document.getElementById('cur-wizard').style.display  = '';
+  _wizCur = { paso: 0, datos: {} };
+  renderWizCur();
+}
+
+function renderWizCur() {
+  const pasos = ['Identificación','Configuración','Confirmación'];
+  const steps = document.getElementById('steps-cur');
+  const panels = document.getElementById('panels-cur');
+
+  steps.innerHTML = pasos.map((label, i) => {
+    const cls = i < _wizCur.paso ? 'done' : i === _wizCur.paso ? 'active' : '';
+    const icon = i < _wizCur.paso ? '<i class="ti ti-check" style="font-size:13px"></i>' : (i+1);
+    return `${i>0?'<div class="step-line"></div>':''}
+      <div class="step-dot ${cls}">
+        <div class="dot-circle">${icon}</div>
+        <span class="step-label">${label}</span>
+      </div>`;
+  }).join('');
+
+  if (_wizCur.paso === 0) {
+    panels.innerHTML = `
+      <p class="panel-title">Identificación del curso</p>
+      <p class="panel-sub">Ingresá el año y la división del nuevo curso.</p>
+      <div class="field-row">
+        <div class="field">
+          <label>Año</label>
+          <select id="wc-año">
+            ${['1','2','3','4','5','6'].map(a=>`<option value="${a}" ${_wizCur.datos.año===a?'selected':''}>${a}°</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>División</label>
+          <select id="wc-div">
+            ${['A','B','C','D'].map(d=>`<option value="${d}" ${_wizCur.datos.division===d?'selected':''}>${d}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Nombre personalizado <span style="color:var(--color-text-faint)">(opcional)</span></label>
+        <input type="text" id="wc-nombre" value="${_wizCur.datos.nombre_personalizado||''}" placeholder="Ej: 4°D Técnica" />
+      </div>
+      <div class="btn-row">
+        <button onclick="volverListadoCur()">Cancelar</button>
+        <button class="primary" onclick="wizCurSig0()">Siguiente <i class="ti ti-arrow-right"></i></button>
+      </div>`;
+  } else if (_wizCur.paso === 1) {
+    apiGet('leer','ESTRUCTURA_HORARIA').catch(()=>[]).then(estructuras => {
+      const opts = estructuras.map(e =>
+        `<option value="${e.id}" ${_wizCur.datos.id_estructura===e.id?'selected':''}>${e.nombre}</option>`
+      ).join('');
+      document.getElementById('wc-estructura-wrap').innerHTML = `
+        <select id="wc-estructura">
+          <option value="">Default del sistema</option>
+          ${opts}
+        </select>`;
+    });
+    panels.innerHTML = `
+      <p class="panel-title">Configuración</p>
+      <p class="panel-sub">Definí la estructura horaria. En la mayoría de los casos podés dejar la default.</p>
+      <div class="field">
+        <label>Estructura horaria</label>
+        <div id="wc-estructura-wrap"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+      <div class="btn-row">
+        <button onclick="wizCurAtras()"><i class="ti ti-arrow-left"></i> Atrás</button>
+        <button class="primary" onclick="wizCurSig1()">Siguiente <i class="ti ti-arrow-right"></i></button>
+      </div>`;
+  } else if (_wizCur.paso === 2) {
+    const d = _wizCur.datos;
+    panels.innerHTML = `
+      <p class="panel-title">Confirmación</p>
+      <p class="panel-sub">Revisá los datos antes de guardar.</p>
+      <div class="summary-card">
+        <div class="summary-row"><span class="summary-label">Año</span><span class="summary-value">${d.año}°</span></div>
+        <div class="summary-row"><span class="summary-label">División</span><span class="summary-value">${d.division}</span></div>
+        <div class="summary-row"><span class="summary-label">Nombre personalizado</span><span class="summary-value">${d.nombre_personalizado||'—'}</span></div>
+        <div class="summary-row"><span class="summary-label">Estructura horaria</span><span class="summary-value">${d._estrLabel||'Default'}</span></div>
+      </div>
+      <div class="btn-row">
+        <button onclick="wizCurAtras()"><i class="ti ti-arrow-left"></i> Atrás</button>
+        <button class="primary" onclick="wizCurGuardar()"><i class="ti ti-device-floppy"></i> Guardar curso</button>
+      </div>`;
+  }
+}
+
+function wizCurSig0() {
+  const año    = document.getElementById('wc-año').value;
+  const div    = document.getElementById('wc-div').value;
+  const nombre = document.getElementById('wc-nombre').value.trim();
+  if (!año || !div) { showToast('Completá año y división','err'); return; }
+  _wizCur.datos.año = año;
+  _wizCur.datos.division = div;
+  _wizCur.datos.nombre_personalizado = nombre;
+  _wizCur.paso = 1;
+  renderWizCur();
+}
+
+function wizCurSig1() {
+  const sel = document.getElementById('wc-estructura');
+  _wizCur.datos.id_estructura    = sel ? sel.value : '';
+  _wizCur.datos._estrLabel       = sel ? sel.options[sel.selectedIndex]?.text : 'Default';
+  _wizCur.paso = 2;
+  renderWizCur();
+}
+
+function wizCurAtras() { _wizCur.paso = Math.max(0, _wizCur.paso - 1); renderWizCur(); }
+
+async function wizCurGuardar() {
+  const d = _wizCur.datos;
+  try {
+    await apiPost('crear','cursos',{
+      año:                 d.año,
+      division:            d.division,
+      nombre_personalizado: d.nombre_personalizado || '',
+      id_estructura:       d.id_estructura || null,
+      activo:              true
+    });
+    delete _cache['CURSOS'];
+    // Mostrar éxito
+    document.getElementById('panels-cur').innerHTML = `
+      <div class="success-state">
+        <div class="success-icon"><i class="ti ti-check"></i></div>
+        <p class="success-title">Curso creado</p>
+        <p class="success-sub">${d.año}° ${d.division}${d.nombre_personalizado?' — '+d.nombre_personalizado:''}</p>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:0.5rem">
+          <button onclick="abrirWizardCur()"><i class="ti ti-plus"></i> Crear otro</button>
+          <button class="primary" onclick="volverListadoCur()"><i class="ti ti-list"></i> Ver listado</button>
+        </div>
+      </div>`;
+    document.getElementById('steps-cur').innerHTML = '';
+  } catch(e) { showToast('Error: ' + e.message, 'err'); }
+}
+
+// ============================================================
+// PLAN DE ESTUDIOS
+// ============================================================
+let _planDatos = []; // filas ya calculadas: {curso, cursoLabel, año, materia, bloques, profesorLabel, sinAsignar}
+
+async function renderPlanEstudios() {
+  const wrap = document.getElementById('plan-tabla-wrap');
+  wrap.innerHTML = '<div class="loading" style="padding:1.5rem"><div class="spinner"></div> Cargando...</div>';
+  try {
+    const [cursos, mats, cargas, asigs, profs, bloquesComp, bloquesCompDoc] = await Promise.all([
+      apiGet('leer','CURSOS'),
+      apiGet('leer','MATERIAS'),
+      apiGet('leer','CARGA_HORARIA'),
+      apiGet('leer','ASIGNACIONES'),
+      apiGet('leer','PROFESORES'),
+      apiGet('leer','BLOQUES_COMPARTIDOS'),
+      apiGet('leer','BLOQUES_COMPARTIDOS_DOCENTES'),
+    ]);
+
+    const cursosActivos = cursos.filter(c => isTruthy(c.activo)).sort((a,b) =>
+      String(a.año).localeCompare(String(b.año)) || String(a.division).localeCompare(String(b.division))
+    );
+
+    const filas = [];
+    cursosActivos.forEach(curso => {
+      const cursoLabel = `${curso.año}° ${curso.division}`;
+      const cargasAño = cargas.filter(c => String(c.año) === String(curso.año));
+
+      cargasAño.forEach(carga => {
+        const mat = mats.find(m => String(m.id) === String(carga.id_materia));
+        if (!mat || !isTruthy(mat.activa)) return;
+
+        // ¿Es bloque compartido en este año?
+        const bloque = bloquesComp.find(b =>
+          String(b.id_materia) === String(mat.id) && String(b.año) === String(curso.año)
+        );
+
+        if (bloque) {
+          const docs = bloquesCompDoc.filter(d => String(d.id_bloque_compartido) === String(bloque.id));
+          const nombresProf = docs.map(d => {
+            const p = profs.find(pr => String(pr.id) === String(d.id_profesor));
+            return p ? `${p.apellido}, ${p.nombre}` : null;
+          }).filter(Boolean);
+          filas.push({
+            cursoLabel: `${curso.año}° (todas las divisiones)`,
+            _ordenCurso: `${curso.año}-0`, // agrupa antes que A/B/C individuales
+            materia: mat.nombre + ' (compartida)',
+            bloques: Number(bloque.modulos_consecutivos) || 0,
+            profesorLabel: nombresProf.length ? nombresProf.join(', ') : null,
+            sinAsignar: nombresProf.length === 0,
+          });
+        } else {
+          const asigsCurso = asigs.filter(a =>
+            String(a.id_materia) === String(mat.id) &&
+            String(a.id_curso) === String(curso.id) &&
+            a.estado !== 'archivado'
+          );
+
+          let profesorLabel = null;
+          if (asigsCurso.length === 1) {
+            const prof = profs.find(p => String(p.id) === String(asigsCurso[0].id_profesor));
+            profesorLabel = prof ? `${prof.apellido}, ${prof.nombre}` : null;
+          } else if (asigsCurso.length > 1) {
+            const partes = asigsCurso.map(a => {
+              const prof = profs.find(p => String(p.id) === String(a.id_profesor));
+              const nombre = prof ? `${prof.apellido}, ${prof.nombre}` : `Profesor #${a.id_profesor}`;
+              if (a.tipo_reparto === 'parcial') {
+                return `${nombre} (${Number(a.modulos_asignados) || 0} mód.)`;
+              }
+              if (a.tipo_reparto === 'codocencia') {
+                return `${nombre} (co-docencia)`;
+              }
+              return nombre; // fila mal clasificada como 'completo' habiendo más de una — se muestra igual, sin ocultar el dato
+            });
+            profesorLabel = partes.join(' + ');
+          }
+
+          filas.push({
+            cursoLabel,
+            _ordenCurso: `${curso.año}-${curso.division}`,
+            materia: mat.nombre,
+            bloques: Number(carga.bloques_semanales) || 0,
+            profesorLabel,
+            sinAsignar: asigsCurso.length === 0,
+          });
+        }
+      });
+    });
+
+    // Bloques compartidos generan una fila por año, no por curso — deduplicar
+    const vistos = new Set();
+    _planDatos = filas.filter(f => {
+      if (!f.materia.endsWith('(compartida)')) return true;
+      const key = f._ordenCurso + '|' + f.materia;
+      if (vistos.has(key)) return false;
+      vistos.add(key);
+      return true;
+    }).sort((a,b) => a._ordenCurso.localeCompare(b._ordenCurso) || a.materia.localeCompare(b.materia,'es'));
+
+    _poblarFiltroCursoPlan(cursosActivos);
+    filtrarPlan();
+  } catch(e) {
+    wrap.innerHTML = `<p style="padding:1.5rem;color:var(--color-red-text)">Error: ${e.message}</p>`;
+  }
+}
+
+function _poblarFiltroCursoPlan(cursosActivos) {
+  const sel = document.getElementById('plan-f-curso');
+  const añoSel = document.getElementById('plan-f-año').value;
+  const opciones = cursosActivos
+    .filter(c => !añoSel || String(c.año) === añoSel)
+    .map(c => `<option value="${c.año}° ${c.division}">${c.año}° ${c.division}</option>`)
+    .join('');
+  sel.innerHTML = `<option value="">Todos los cursos</option>${opciones}`;
+}
+
+function onPlanFiltroAñoChange() {
+  // Al cambiar el año, repoblar el selector de curso para que solo muestre los de ese año
+  apiGet('leer','CURSOS').then(cursos => {
+    _poblarFiltroCursoPlan(cursos.filter(c => isTruthy(c.activo)));
+    filtrarPlan();
+  });
+}
+
+function filtrarPlan() {
+  const año   = document.getElementById('plan-f-año').value;
+  const curso = document.getElementById('plan-f-curso').value;
+
+  let lista = [..._planDatos];
+  if (curso) {
+    // Coincide tanto con divisiones individuales como con filas de "todas las divisiones" de ese año
+    const añoDeCurso = curso.split('°')[0];
+    lista = lista.filter(f => f.cursoLabel === curso || f.cursoLabel === `${añoDeCurso}° (todas las divisiones)`);
+  } else if (año) {
+    lista = lista.filter(f => f._ordenCurso.startsWith(año + '-'));
+  }
+
+  const wrap = document.getElementById('plan-tabla-wrap');
+  if (!lista.length) {
+    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-table"></i>No hay materias con carga horaria para este filtro.</div>`;
+    return;
+  }
+
+  const rows = lista.map(f => `<tr>
+    <td style="font-weight:500">${f.cursoLabel}</td>
+    <td>${f.materia}</td>
+    <td style="text-align:center">${f.bloques} bl/sem</td>
+    <td>${f.sinAsignar
+      ? '<span style="color:var(--color-red-text);font-weight:500">Sin asignar</span>'
+      : f.profesorLabel}</td>
+  </tr>`).join('');
+
+  wrap.innerHTML = `<table class="prof-table">
+    <thead><tr><th>Curso</th><th>Materia</th><th>Carga horaria</th><th>Profesor a cargo</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// ============================================================
+// REPORTE DE HORAS
+// ============================================================
+let _repDatos  = [];   // datos calculados — se recalculan solo al entrar a la sección
+let _repFiltros = { estado: 'todas', sit: 'todos' };
+
+async function renderReporte() {
+  const cont = document.getElementById('reporte-container');
+  cont.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando reporte...</div>';
+  try {
+    const [profs, mats, cursos, asigs, cargas, bloquesComp, bloquesCompDoc] = await Promise.all([
+      apiGet('leer','PROFESORES'),
+      apiGet('leer','MATERIAS'),
+      apiGet('leer','CURSOS'),
+      apiGet('leer','ASIGNACIONES'),
+      apiGet('leer','CARGA_HORARIA'),
+      apiGet('leer','BLOQUES_COMPARTIDOS'),
+      apiGet('leer','BLOQUES_COMPARTIDOS_DOCENTES'),
+    ]);
+
+    const esViewer = USUARIO.rol === 'viewer';
+
+    // Construir datos completos por profesor (sin filtrar por estado aún)
+    const activos = profs.filter(p => isTruthy(p.activo));
+    _repDatos = activos.map(p => {
+      const asigProf = asigs.filter(a =>
+        String(a.id_profesor) === String(p.id) && a.estado !== 'archivado'
+      );
+      const detalle = asigProf.map(a => {
+        const mat   = mats.find(m => String(m.id) === String(a.id_materia));
+        const curso = cursos.find(c => String(c.id) === String(a.id_curso));
+        const carga = cargas.find(c =>
+          String(c.id_materia) === String(a.id_materia) &&
+          String(c.año) === String(curso?.año)
+        );
+        const totalMat = Number(carga?.bloques_semanales) || 0;
+        // Reparto parcial: este profesor solo carga sus propios módulos, no el total de la materia.
+        // Completo y co-docencia usan el total (co-docencia porque ambos dan las mismas horas juntos).
+        const bloques = a.tipo_reparto === 'parcial' ? (Number(a.modulos_asignados) || 0) : totalMat;
+        let sufijo = '';
+        if (a.tipo_reparto === 'parcial')    sufijo = ' (reparto)';
+        if (a.tipo_reparto === 'codocencia') sufijo = ' (co-docencia)';
+        return {
+          matNombre: (mat?.nombre || `Materia #${a.id_materia}`) + sufijo,
+          curLabel:  curso ? `${curso.año}° ${curso.division}` : `Curso #${a.id_curso}`,
+          bloques,
+          estado:    a.estado || 'borrador',
+        };
+      });
+
+      // Sumar bloques compartidos donde este profesor participa
+      const idsBloquesProf = bloquesCompDoc
+        .filter(d => String(d.id_profesor) === String(p.id))
+        .map(d => d.id_bloque_compartido);
+      const bloquesProf = bloquesComp.filter(b => idsBloquesProf.includes(b.id));
+      bloquesProf.forEach(b => {
+        const mat = mats.find(m => String(m.id) === String(b.id_materia));
+        detalle.push({
+          matNombre: (mat?.nombre || `Materia #${b.id_materia}`) + ' (compartida)',
+          curLabel:  `${b.año}° año completo`,
+          bloques:   Number(b.modulos_consecutivos) || 0,
+          estado:    b.estado || 'borrador',
+        });
+      });
+
+      const horasContrato = Number(p.horas_contrato) || 0;
+      const unidad        = p.unidad_contrato === 'modulos' ? 'mód' : 'hs';
+      return { p, detalle, horasContrato, unidad, esViewer };
+    });
+
+    // Armar shell con filtros (persiste entre cambios)
+    const filtroHtml = !esViewer ? `
+      <div class="card" style="padding:12px 16px;margin-bottom:1rem">
+        <div class="list-toolbar">
+          <div class="field" style="margin-bottom:0">
+            <label>Mostrar asignaciones</label>
+            <select id="rep-estado-fil" onchange="onRepFiltroEstado(this.value)" style="width:auto">
+              <option value="todas">Borrador + Publicadas</option>
+              <option value="borrador">Solo borrador</option>
+              <option value="publicado">Solo publicadas</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Situación del docente</label>
+            <select id="rep-sit-fil" onchange="onRepFiltroSit(this.value)" style="width:auto">
+              <option value="todos">Todos</option>
+              <option value="ok">Completos</option>
+              <option value="sobre">Sobreasignados</option>
+              <option value="bajo">Subasignados</option>
+              <option value="sin">Sin contrato cargado</option>
+            </select>
+          </div>
+        </div>
+      </div>` : '';
+
+    cont.innerHTML = `
+      ${filtroHtml}
+      <div class="reporte-resumen" id="rep-resumen"></div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div id="rep-lista"></div>
+      </div>`;
+
+    // Restaurar valores de filtros si ya existían
+    if (!esViewer) {
+      document.getElementById('rep-estado-fil').value = _repFiltros.estado;
+      document.getElementById('rep-sit-fil').value    = _repFiltros.sit;
+    }
+
+    _repAplicarFiltros();
+
+  } catch(e) {
+    cont.innerHTML = `<p style="color:var(--color-red-text);padding:1rem">Error: ${e.message}</p>`;
+  }
+}
+
+function onRepFiltroEstado(val) { _repFiltros.estado = val; _repAplicarFiltros(); }
+function onRepFiltroSit(val)    { _repFiltros.sit    = val; _repAplicarFiltros(); }
+
+function _repAplicarFiltros() {
+  const esViewer  = USUARIO.rol === 'viewer';
+  const filEstado = esViewer ? 'publicado' : _repFiltros.estado;
+  const filSit    = _repFiltros.sit;
+
+  // Calcular bloques según filtro de estado para cada profesor
+  const calculados = _repDatos.map(d => {
+    const detFiltrado = d.detalle.filter(det =>
+      filEstado === 'todas' || det.estado === filEstado
+    );
+    const bloquesAsig = detFiltrado.reduce((s, x) => s + x.bloques, 0);
+    const diff        = d.horasContrato ? bloquesAsig - d.horasContrato : null;
+    return { ...d, detFiltrado, bloquesAsig, diff };
+  });
+
+  // Filtro de situación
+  const visibles = calculados.filter(d => {
+    if (filSit === 'todos')  return true;
+    if (filSit === 'sin')    return d.horasContrato === 0;
+    if (filSit === 'ok')     return d.diff === 0;
+    if (filSit === 'sobre')  return d.diff !== null && d.diff > 0;
+    if (filSit === 'bajo')   return d.diff !== null && d.diff < 0;
+    return true;
+  });
+
+  // Métricas (siempre sobre el total con el filtro de estado, sin filtro de situación)
+  const conContrato    = calculados.filter(d => d.horasContrato > 0);
+  const completos      = conContrato.filter(d => d.diff === 0).length;
+  const sobreasignados = conContrato.filter(d => d.diff > 0).length;
+  const subasignados   = conContrato.filter(d => d.diff < 0).length;
+
+  document.getElementById('rep-resumen').innerHTML = `
+    <div class="rep-card"><div class="rep-card-label">Docentes activos</div><div class="rep-card-value">${calculados.length}</div></div>
+    <div class="rep-card"><div class="rep-card-label" style="color:#1D9E75">Completos</div><div class="rep-card-value" style="color:#1D9E75">${completos}</div></div>
+    <div class="rep-card"><div class="rep-card-label" style="color:#E24B4A">Sobreasignados</div><div class="rep-card-value" style="color:#E24B4A">${sobreasignados}</div></div>
+    <div class="rep-card"><div class="rep-card-label" style="color:#BA7517">Subasignados</div><div class="rep-card-value" style="color:#BA7517">${subasignados}</div></div>`;
+
+  document.getElementById('rep-lista').innerHTML = visibles.length
+    ? visibles.map((d, i) => _renderRepRow(d, i)).join('')
+    : '<p style="padding:1.5rem;color:var(--color-text-muted);font-size:13px">Sin resultados para el filtro seleccionado.</p>';
+}
+
+function _renderRepRow(d, i) {
+  const { p, detFiltrado, bloquesAsig, horasContrato, unidad, diff } = d;
+  const ini = ((p.apellido||'')[0]||'').toUpperCase() + ((p.nombre||'')[0]||'').toUpperCase();
+
+  let badgeHtml, barClass, barPct;
+  if (!horasContrato) {
+    badgeHtml = '<span class="badge badge-viewer">Sin contrato</span>';
+    barPct = 0; barClass = 'rep-bar-low';
+  } else if (diff === 0) {
+    badgeHtml = '<span class="badge badge-admin">Completo</span>';
+    barPct = 100; barClass = 'rep-bar-ok';
+  } else if (diff > 0) {
+    badgeHtml = `<span class="badge" style="background:var(--color-red-bg);color:var(--color-red-text)">+${diff} ${unidad}</span>`;
+    barPct = Math.min(100, Math.round(bloquesAsig / horasContrato * 100));
+    barClass = 'rep-bar-over';
+  } else {
+    badgeHtml = `<span class="badge badge-viewer">${diff} ${unidad}</span>`;
+    barPct = Math.max(0, Math.round(bloquesAsig / horasContrato * 100));
+    barClass = 'rep-bar-low';
+  }
+
+  const contratoLabel = horasContrato ? `Contrato: ${horasContrato} ${unidad}` : 'Sin contrato cargado';
+  const asigLabel     = `Asignado: ${bloquesAsig} bl/sem`;
+
+  const detalleRows = detFiltrado.length
+    ? detFiltrado.map(x => `
+        <div class="rep-det-row">
+          <span><span class="rep-det-mat">${x.matNombre}</span> — ${x.curLabel}</span>
+          <span style="display:flex;gap:8px;align-items:center">
+            <span class="badge badge-viewer" style="font-size:10px">${x.estado}</span>
+            <span style="font-weight:500">${x.bloques} bl/sem</span>
+          </span>
+        </div>`).join('')
+    : '<p style="font-size:12px;color:var(--color-text-faint);padding:4px 0">Sin asignaciones para el filtro actual.</p>';
+
+  return `
+    <div class="rep-row" onclick="toggleRepDetalle(${i})">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="user-avatar" style="flex-shrink:0">${ini}</div>
+        <div style="flex:1">
+          <div class="rep-nombre">${p.apellido}, ${p.nombre}</div>
+          <div class="rep-meta">${contratoLabel} · ${asigLabel}</div>
+          <div class="rep-bar-wrap" style="width:160px">
+            <div class="rep-bar ${barClass}" style="width:${barPct}%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="rep-badges">
+        ${badgeHtml}
+        <i class="ti ti-chevron-down" id="rep-chevron-${i}" style="font-size:14px;color:var(--color-text-faint);transition:transform 0.2s"></i>
+      </div>
+    </div>
+    <div class="rep-detalle" id="rep-det-${i}">${detalleRows}</div>`;
+}
+
+function toggleRepDetalle(i) {
+  const det = document.getElementById(`rep-det-${i}`);
+  const chv = document.getElementById(`rep-chevron-${i}`);
+  if (!det) return;
+  const open = det.classList.toggle('open');
+  if (chv) chv.style.transform = open ? 'rotate(180deg)' : '';
+}
+
+// ============================================================
+// CONFIGURACIÓN — tabs
+// ============================================================
+function renderConfig() {
+  activarCfgTab('estructuras');
+}
+
+function activarCfgTab(tab) {
+  document.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('cfg-tab-' + tab)?.classList.add('active');
+  document.getElementById('cfg-panel-' + tab)?.classList.add('active');
+  if (tab === 'estructuras') renderEstructuras();
+  if (tab === 'usuarios')    renderUsuarios();
+}
+
+// ============================================================
+// ESTRUCTURAS HORARIAS
+// ============================================================
+let _estrState = {
+  estructuras: [],
+  idSeleccionada: null,
+  bloques: [],          // bloques de la estructura seleccionada (orden editable)
+  bloquesEditados: {},  // id → campos editados en memoria
+  bloquesNuevos: [],    // bloques agregados aún no guardados
+  bloquesEliminados: [],// ids a eliminar al guardar
+};
+
+async function renderEstructuras() {
+  const cont = document.getElementById('cfg-estr-container');
+  cont.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando...</div>';
+  try {
+    const [estructuras, bloques] = await Promise.all([
+      apiGet('leer','ESTRUCTURA_HORARIA'),
+      apiGet('leer','BLOQUES'),
+    ]);
+    _estrState.estructuras = estructuras;
+    _estrState.bloques     = bloques;
+
+    cont.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <p style="font-size:13px;font-weight:500">Estructuras horarias</p>
+        <button class="primary" onclick="nuevaEstructura()"><i class="ti ti-plus"></i> Nueva estructura</button>
+      </div>
+      <div class="estr-list" id="estr-list">
+        ${estructuras.map(e => _renderEstrItem(e, bloques)).join('')}
+      </div>
+      <div id="estr-bloques-panel"></div>`;
+
+    // Si había una seleccionada, reabrirla
+    if (_estrState.idSeleccionada) abrirEstructura(_estrState.idSeleccionada);
+
+  } catch(e) {
+    cont.innerHTML = `<p style="color:var(--color-red-text)">Error: ${e.message}</p>`;
+  }
+}
+
+function _renderEstrItem(e, bloques) {
+  const nBloques   = bloques.filter(b => String(b.id_estructura) === String(e.id)).length;
+  const esDefault  = isTruthy(e.es_default);
+  const seleccionada = String(_estrState.idSeleccionada) === String(e.id);
+  return `
+    <div class="estr-item ${seleccionada?'selected':''}" id="estr-item-${e.id}" onclick="abrirEstructura('${e.id}')">
+      <div>
+        <div style="font-size:13px;font-weight:500">${e.nombre}
+          ${esDefault ? '<span class="badge badge-admin" style="margin-left:8px;font-size:10px">Default</span>' : ''}
+        </div>
+        <div style="font-size:12px;color:var(--color-text-muted);margin-top:2px">${nBloques} bloques configurados</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button onclick="event.stopPropagation();editarNombreEstr('${e.id}','${e.nombre.replace(/'/g,"\\'")}',${esDefault})" style="padding:4px 8px;font-size:12px"><i class="ti ti-pencil"></i></button>
+        ${!esDefault ? `<button onclick="event.stopPropagation();eliminarEstr('${e.id}')" style="padding:4px 8px;font-size:12px;color:var(--color-red-text)"><i class="ti ti-trash"></i></button>` : ''}
+      </div>
+    </div>`;
+}
+
+function abrirEstructura(idEstr) {
+  _estrState.idSeleccionada  = idEstr;
+  _estrState.bloquesEditados = {};
+  _estrState.bloquesNuevos  = [];
+  _estrState.bloquesEliminados = [];
+
+  // Marcar seleccionada visualmente
+  document.querySelectorAll('.estr-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById(`estr-item-${idEstr}`)?.classList.add('selected');
+
+  const estr   = _estrState.estructuras.find(e => String(e.id) === String(idEstr));
+  const bloques = _estrState.bloques
+    .filter(b => String(b.id_estructura) === String(idEstr))
+    .sort((a, b) => {
+      // Ordenar por hora_inicio: convertir "H:MM" a minutos para comparar correctamente
+      const toMin = h => { if (!h) return 9999; const [hh,mm] = String(h).split(':'); return Number(hh)*60 + Number(mm||0); };
+      return toMin(a.hora_inicio) - toMin(b.hora_inicio);
+    });
+
+  _renderBloquesPanelEstr(estr, bloques);
+}
+
+function _renderBloquesPanelEstr(estr, bloques) {
+  const panel = document.getElementById('estr-bloques-panel');
+  let acadCount = 0;
+  const rows = bloques.map((b) => {
+    const nroDisplay = b.tipo === 'academico' ? ++acadCount : null;
+    return _renderBloqueRow(b, nroDisplay);
+  }).join('');
+
+  panel.innerHTML = `
+    <div class="card" style="padding:0;overflow:hidden;margin-top:1rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:0.5px solid var(--color-border)">
+        <span style="font-size:13px;font-weight:500">Bloques — ${estr?.nombre||''}</span>
+        <div style="display:flex;gap:8px">
+          <button onclick="agregarBloqueEstr()" style="font-size:12px;padding:5px 10px"><i class="ti ti-plus"></i> Agregar bloque</button>
+          <button class="primary" onclick="guardarBloquesEstr()" style="font-size:12px;padding:5px 10px"><i class="ti ti-device-floppy"></i> Guardar cambios</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="bloques-table">
+          <thead><tr>
+            <th style="width:28px"></th>
+            <th>N°</th>
+            <th>Tipo</th>
+            <th>Hora inicio</th>
+            <th>Hora fin</th>
+            <th>Duración (min)</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="bloques-tbody">${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+  _initDragDrop();
+}
+
+function _renderBloqueRow(b, nroDisplay) {
+  const id     = b.id || b._tempId;
+  const tipo   = b.tipo || 'academico';
+  const numero = tipo === 'academico' ? (nroDisplay ?? '') : '—';
+
+  return `<tr draggable="true" data-id="${id}">
+    <td><span class="drag-handle"><i class="ti ti-grip-vertical"></i></span></td>
+    <td style="color:var(--color-text-muted);font-size:12px;text-align:center;width:32px">${numero}</td>
+    <td>
+      <select style="width:110px">
+        <option value="academico" ${tipo==='academico'?'selected':''}>Académico</option>
+        <option value="recreo"    ${tipo==='recreo'   ?'selected':''}>Recreo</option>
+        <option value="almuerzo"  ${tipo==='almuerzo' ?'selected':''}>Almuerzo</option>
+      </select>
+    </td>
+    <td><input type="text"   value="${b.hora_inicio||''}" placeholder="8:15" style="width:70px" /></td>
+    <td><input type="text"   value="${b.hora_fin||''}"    placeholder="8:55" style="width:70px" /></td>
+    <td><input type="number" value="${b.duracion_min||''}" min="1" max="180"  style="width:70px;text-align:center" /></td>
+    <td><button onclick="eliminarBloqueEstr('${id}')" style="padding:3px 7px;font-size:12px;color:var(--color-red-text)"><i class="ti ti-trash"></i></button></td>
+  </tr>`;
+}
+
+function eliminarBloqueEstr(id) {
+  const esNuevo = String(id).startsWith('new_');
+  if (esNuevo) {
+    _estrState.bloquesNuevos = _estrState.bloquesNuevos.filter(b => b._tempId !== id);
+  } else {
+    _estrState.bloquesEliminados.push(id);
+  }
+  // Quitar del DOM sin recargar
+  document.querySelector(`tr[data-id="${id}"]`)?.remove();
+}
+
+function agregarBloqueEstr() {
+  const tempId = 'new_' + Date.now();
+  const nuevo  = { _tempId: tempId, id: tempId, id_estructura: _estrState.idSeleccionada, tipo:'academico', hora_inicio:'', hora_fin:'', duracion_min:'', numero:'' };
+  _estrState.bloquesNuevos.push(nuevo);
+  const tbody = document.getElementById('bloques-tbody');
+  const nroNuevo = [...tbody.querySelectorAll('tr[data-id] select')]
+    .filter(s => s.value === 'academico').length + 1;
+  const tr = document.createElement('tr');
+  tr.setAttribute('draggable','true');
+  tr.setAttribute('data-id', tempId);
+  tr.innerHTML = _renderBloqueRow(nuevo, nroNuevo).replace(/^<tr[^>]*>/,'').replace(/<\/tr>$/,'');
+  tbody.appendChild(tr);
+  _initDragDrop();
+}
+
+async function guardarBloquesEstr() {
+  const idEstr = _estrState.idSeleccionada;
+  if (!idEstr) return;
+  try {
+    // 1. Eliminar los marcados para borrar
+    for (const id of _estrState.bloquesEliminados) {
+      await apiPost('eliminar','bloques', {}, id);
+    }
+
+    // 2. Leer TODOS los valores actuales del DOM fila por fila
+    const filas = [...document.querySelectorAll('#bloques-tbody tr[data-id]')];
+    let numAcademico = 1;
+
+    for (const fila of filas) {
+      const id      = fila.getAttribute('data-id');
+      const esNuevo = String(id).startsWith('new_');
+      const inputs  = fila.querySelectorAll('input');
+      const sel     = fila.querySelector('select');
+
+      const tipo        = sel?.value || 'academico';
+      const hora_inicio = inputs[0]?.value.trim() || '';
+      const hora_fin    = inputs[1]?.value.trim() || '';
+      const duracion    = inputs[2]?.value || '';
+      // numero: secuencial solo para académicos; para recreos/almuerzos usamos null
+      // numero: secuencial solo para académicos; para recreos/almuerzos usamos null
+      const numero = tipo === 'academico' ? numAcademico++ : null;
+
+      if (esNuevo) {
+        await apiPost('crear','bloques', {
+          id_estructura: idEstr,
+          tipo, hora_inicio, hora_fin,
+          duracion_min: duracion,
+          numero,
+        });
+      } else {
+        await apiPost('editar','bloques', {
+          tipo, hora_inicio, hora_fin,
+          duracion_min: duracion,
+          numero,
+        }, id);
+      }
+    }
+
+    delete _cache['BLOQUES'];
+    _bloquesCache = null;
+    showToast('Estructura guardada');
+
+    const bloques = await apiGet('leer','BLOQUES');
+    _estrState.bloques           = bloques;
+    _estrState.bloquesEditados   = {};
+    _estrState.bloquesNuevos     = [];
+    _estrState.bloquesEliminados = [];
+    abrirEstructura(idEstr);
+
+  } catch(e) { showToast('Error: ' + e.message, 'err'); }
+}
+
+// ---- nueva estructura ----
+function nuevaEstructura() {
+  const nombre = prompt('Nombre de la nueva estructura:');
+  if (!nombre?.trim()) return;
+  apiPost('crear','estructura_horaria',{ nombre: nombre.trim(), es_default: false })
+    .then(() => { delete _cache['ESTRUCTURA_HORARIA']; renderEstructuras(); showToast('Estructura creada'); })
+    .catch(e => showToast('Error: ' + e.message, 'err'));
+}
+
+function editarNombreEstr(id, nombreActual, esDefault) {
+  const nuevo = prompt('Nuevo nombre:', nombreActual);
+  if (!nuevo?.trim() || nuevo.trim() === nombreActual) return;
+  apiPost('editar','estructura_horaria',{ nombre: nuevo.trim() }, id)
+    .then(() => { delete _cache['ESTRUCTURA_HORARIA']; renderEstructuras(); showToast('Nombre actualizado'); })
+    .catch(e => showToast('Error: ' + e.message, 'err'));
+}
+
+function eliminarEstr(id) {
+  const bl = _estrState.bloques.filter(b => String(b.id_estructura) === String(id)).length;
+  const msg = bl > 0
+    ? `Esta estructura tiene ${bl} bloques que también se eliminarán. ¿Confirmás?`
+    : '¿Eliminás esta estructura?';
+  confirmar('Eliminar estructura', msg, async () => {
+    try {
+      // Eliminar bloques primero
+      const bloquesEstr = _estrState.bloques.filter(b => String(b.id_estructura) === String(id));
+      for (const b of bloquesEstr) await apiPost('eliminar','bloques',{}, b.id);
+      await apiPost('eliminar','estructura_horaria',{}, id);
+      delete _cache['ESTRUCTURA_HORARIA']; delete _cache['BLOQUES'];
+      _estrState.idSeleccionada = null;
+      document.getElementById('estr-bloques-panel').innerHTML = '';
+      renderEstructuras();
+      showToast('Estructura eliminada');
+    } catch(e) { showToast('Error: ' + e.message, 'err'); }
+  });
+}
+
+// ---- drag & drop ----
+function _initDragDrop() {
+  const tbody = document.getElementById('bloques-tbody');
+  if (!tbody) return;
+  let dragging = null;
+
+  tbody.querySelectorAll('tr[draggable]').forEach(row => {
+    row.addEventListener('dragstart', e => {
+      dragging = row;
+      setTimeout(() => row.style.opacity = '0.4', 0);
+    });
+    row.addEventListener('dragend', () => {
+      row.style.opacity = '';
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+      // El orden real al guardar se toma directo del DOM en guardarBloquesEstr(),
+      // no hace falta mantener un estado de orden aparte.
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (dragging && dragging !== row) {
+        tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+        row.classList.add('drag-over');
+        const rect = row.getBoundingClientRect();
+        const mid  = rect.top + rect.height / 2;
+        if (e.clientY < mid) tbody.insertBefore(dragging, row);
+        else tbody.insertBefore(dragging, row.nextSibling);
+      }
+    });
+    row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+    row.addEventListener('drop', e => { e.preventDefault(); row.classList.remove('drag-over'); });
+  });
+}
+
+// ============================================================
+// REGLAS
+// ============================================================
+async function renderReglas() {
+  const cont = document.getElementById('reglas-container');
+  cont.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando reglas...</div>';
+  try {
+    const reglas = await apiGet('leer','REGLAS');
+    if (!reglas.length) { cont.innerHTML = '<p style="color:var(--color-text-muted)">No hay reglas cargadas.</p>'; return; }
+    const col = { fija:'badge-editor', pred:'badge-admin', libre:'badge-viewer' };
+    const cat = { sistema:'Sistema', materia:'Materia', profesor:'Profesor', año:'Año', curso:'Curso' };
+    cont.innerHTML = reglas.map(r => {
+      const activo = isTruthy(r.activa);
+      return `<div class="card" style="margin-bottom:8px;opacity:${activo?1:0.5};display:flex;align-items:flex-start;gap:12px">
+        <div style="flex:1">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap">
+            <span style="font-size:14px;font-weight:500">${r.label}</span>
+            <span class="badge ${col[r.tipo]||'badge-viewer'}">${r.tipo}</span>
+            <span class="badge badge-viewer">${cat[r.categoria]||r.categoria}</span>
+            ${!activo?'<span class="badge badge-viewer">Inactiva</span>':''}
+          </div>
+          <p style="font-size:13px;color:var(--color-text-muted)">${r.descripcion}</p>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button onclick="toggleRegla('${r.id}',${!activo})" style="padding:4px 8px;font-size:12px"><i class="ti ti-${activo?'eye-off':'eye'}"></i></button>
+          <button onclick="eliminarRegla('${r.id}')" style="padding:4px 8px;font-size:12px;color:var(--color-red-text)"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { cont.innerHTML = `<p style="color:var(--color-red-text)">Error: ${e.message}</p>`; }
+}
+async function toggleRegla(id, nuevoActivo) {
+  try { await apiPost('editar','reglas',{ activa: nuevoActivo }, id); delete _cache['REGLAS']; renderReglas(); }
+  catch(e) { showToast('Error: ' + e.message, 'err'); }
+}
+async function eliminarRegla(id) {
+  if (!confirm('¿Eliminás esta regla?')) return;
+  try { await apiPost('eliminar','reglas',{}, id); delete _cache['REGLAS']; renderReglas(); showToast('Regla eliminada'); }
+  catch(e) { showToast('Error: ' + e.message, 'err'); }
+}
+function abrirModalRegla() { showToast('Formulario de reglas — próximamente'); }
+
+// ============================================================
+// HORARIO
+// ============================================================
+let _horarioSelectsListos = false;
+
+async function _popularSelectsHorario() {
+  if (_horarioSelectsListos) return;
+  const [cursos, profesores] = await Promise.all([
+    apiGet('leer', 'CURSOS'),
+    apiGet('leer', 'PROFESORES'),
+  ]);
+
+  const cursosActivos = cursos.filter(c => isTruthy(c.activo));
+  const años = [...new Set(cursosActivos.map(c => Number(c.año)))].sort((a,b) => a-b);
+  const selAño = document.getElementById('sel-año');
+  selAño.innerHTML = '<option value="">Año...</option>' +
+    años.map(a => `<option value="${a}">${a}° año</option>`).join('');
+
+  const profesoresActivos = profesores
+    .filter(p => isTruthy(p.activo))
+    .sort((a,b) => `${a.apellido} ${a.nombre}`.localeCompare(`${b.apellido} ${b.nombre}`));
+  const selProf = document.getElementById('sel-prof');
+  selProf.innerHTML = '<option value="">Profesor...</option>' +
+    profesoresActivos.map(p => `<option value="${p.id}">${p.apellido}, ${p.nombre}</option>`).join('');
+
+  document.getElementById('sel-año').removeEventListener('change', _onCambioAñoHorario);
+  document.getElementById('sel-año').addEventListener('change', _onCambioAñoHorario);
+  _horarioSelectsListos = true;
+}
+
+async function _onCambioAñoHorario() {
+  await _actualizarDivisionesHorario();
+  buildHorario();
+}
+
+async function _actualizarDivisionesHorario() {
+  const cursos = await apiGet('leer', 'CURSOS');
+  const añoSel = document.getElementById('sel-año').value;
+  const selDiv = document.getElementById('sel-div');
+  const divisiones = cursos
+    .filter(c => isTruthy(c.activo) && String(Number(c.año)) === String(añoSel))
+    .map(c => c.division)
+    .sort();
+  selDiv.innerHTML = '<option value="">División...</option>' +
+    divisiones.map(d => `<option value="${d}">División ${d}</option>`).join('');
+}
+
+async function buildHorario() {
+  await _popularSelectsHorario();
+
+  const bl = await getBloques();
+  const tipo = document.getElementById('vista-tipo').value;
+
+  let asignacionesFiltradas = [];
+  let idCurso = null;
+
+  if (tipo === 'curso') {
+    const año = document.getElementById('sel-año').value;
+    const div = document.getElementById('sel-div').value;
+    if (!año || !div) { _pintarHorarioVacio(bl); return; }
+    const cursos = await apiGet('leer', 'CURSOS');
+    const curso = cursos.find(c => String(Number(c.año)) === String(año) && c.division === div);
+    if (!curso) { _pintarHorarioVacio(bl); return; }
+    idCurso = curso.id;
+    const asignaciones = await apiGet('leer', 'ASIGNACIONES');
+    asignacionesFiltradas = asignaciones.filter(a => String(a.id_curso) === String(curso.id) && a.estado !== 'archivado');
+  } else {
+    const idProf = document.getElementById('sel-prof').value;
+    if (!idProf) { _pintarHorarioVacio(bl); return; }
+    const asignaciones = await apiGet('leer', 'ASIGNACIONES');
+    asignacionesFiltradas = asignaciones.filter(a => String(a.id_profesor) === String(idProf) && a.estado !== 'archivado');
+  }
+
+  const [materias, profesores, cursos] = await Promise.all([
+    apiGet('leer', 'MATERIAS'),
+    apiGet('leer', 'PROFESORES'),
+    apiGet('leer', 'CURSOS'),
+  ]);
+
+  const grilla = {};
+  DIAS.forEach(d => grilla[d] = {});
+  asignacionesFiltradas.forEach(a => {
+    if (!a.dia || !a.id_bloque_inicio) return; // sin horario asignado todavía (pendiente del CSP)
+    const bloqueInicio = bl.find(b => String(b.id) === String(a.id_bloque_inicio));
+    if (!bloqueInicio) return;
+    const cant = Number(a.cantidad_bloques) || 1;
+    for (let i = 0; i < cant; i++) {
+      const num = bloqueInicio.num + i;
+      grilla[a.dia] = grilla[a.dia] || {};
+      grilla[a.dia][num] = a;
+    }
+  });
+
+  document.getElementById('horario-body').innerHTML = bl.map(b => {
+    const celdas = DIAS.map(dia => {
+      const a = grilla[dia] && grilla[dia][b.num];
+      if (!a) return `<td><span style="color:var(--color-text-faint);font-size:11px">—</span></td>`;
+      const materia = materias.find(m => String(m.id) === String(a.id_materia));
+      const prof = profesores.find(p => String(p.id) === String(a.id_profesor));
+      const curso = cursos.find(c => String(c.id) === String(a.id_curso));
+      const nombreMateria = materia ? materia.nombre : '¿?';
+      const detalle = tipo === 'curso'
+        ? (prof ? `${prof.apellido}` : '')
+        : (curso ? `${curso.año}°${curso.division}` : '');
+      return `<td><span style="font-weight:500">${nombreMateria}</span><span style="font-size:10px;color:var(--color-text-muted);display:block">${detalle}</span></td>`;
+    }).join('');
+    return `<tr><td class="bloque-header"><span style="font-weight:500;color:var(--color-text-muted)">${b.label}</span><span style="font-size:10px;color:var(--color-text-faint);display:block">${b.hora}</span></td>${celdas}</tr>`;
+  }).join('');
+}
+
+function _pintarHorarioVacio(bl) {
+  document.getElementById('horario-body').innerHTML = bl.map(b =>
+    `<tr><td class="bloque-header"><span style="font-weight:500;color:var(--color-text-muted)">${b.label}</span><span style="font-size:10px;color:var(--color-text-faint);display:block">${b.hora}</span></td>${DIAS.map(()=>`<td><span style="color:var(--color-text-faint);font-size:11px">—</span></td>`).join('')}</tr>`
+  ).join('');
+}
+function onVistaCambio() {
+  const tipo = document.getElementById('vista-tipo').value;
+  document.getElementById('filtro-curso').style.display = tipo==='curso'    ? 'flex' : 'none';
+  document.getElementById('filtro-prof').style.display  = tipo==='profesor' ? 'flex' : 'none';
+  buildHorario();
+}
+function setModo(modo) {
+  document.getElementById('btn-consulta').classList.toggle('active', modo==='consulta');
+  document.getElementById('btn-edicion').classList.toggle('active',  modo==='edicion');
+  showToast(modo==='edicion' ? 'Modo edición activado' : 'Modo consulta activado');
+}
+function imprimirHorario() {
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><style>body{font-family:Arial,sans-serif;padding:20px}table{border-collapse:collapse;width:100%;font-size:11px}th,td{padding:4px 6px;border:0.5px solid #ddd}@page{size:A4 landscape;margin:1.5cm}</style></head><body>${document.querySelector('.h-table')?.outerHTML||''}</body></html>`);
+  win.document.close(); setTimeout(()=>win.print(),300);
+}
+function toggleDropdown() { document.getElementById('dropdown-menu').classList.toggle('hidden'); }
+document.addEventListener('click', e => { if (!e.target.closest('.dropdown-wrap')) document.getElementById('dropdown-menu')?.classList.add('hidden'); });
+function descargar(fmt) { document.getElementById('dropdown-menu').classList.add('hidden'); showToast(`Exportación a ${fmt.toUpperCase()} — próximamente`); }
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg, tipo) {
+  const t = document.getElementById('toast');
+  t.innerHTML = `<i class="ti ${tipo==='err'?'ti-alert-circle':'ti-check'}" style="font-size:14px;color:${tipo==='err'?'var(--color-red-text)':'#1D9E75'}"></i> ${msg}`;
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ============================================================
+// USUARIOS
+// ============================================================
+const MAX_ADMINS = 2;
+let _usuariosData = [];
+
+async function renderUsuarios() {
+  if (USUARIO.rol !== 'admin') {
+    document.getElementById('cfg-usuarios-container').innerHTML = `
+      <div class="card" style="text-align:center;padding:2.5rem;color:var(--color-text-muted)">
+        <i class="ti ti-lock" style="font-size:32px;display:block;margin-bottom:8px"></i>
+        <p>Solo los administradores pueden gestionar usuarios.</p>
+      </div>`;
+    return;
+  }
+  const cont = document.getElementById('cfg-usuarios-container');
+  cont.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando...</div>';
+  try {
+    const usuarios = await apiGet('leer', 'USUARIOS');
+    _usuariosData = usuarios;
+    _renderUsuariosPanel(usuarios);
+  } catch(e) {
+    cont.innerHTML = `<div class="card" style="padding:1.5rem;color:var(--color-red-text)">Error al cargar usuarios: ${e.message}</div>`;
+  }
+}
+
+function _renderUsuariosPanel(usuarios) {
+  const cont = document.getElementById('cfg-usuarios-container');
+  const activos = usuarios.filter(u => isTruthy(u.activo));
+  const adminsActivos = activos.filter(u => u.rol === 'admin').length;
+
+  const filas = usuarios.map(u => {
+    const activo = isTruthy(u.activo);
+    const rolBadge = {
+      admin:  `<span class="badge" style="background:var(--color-purple-bg);color:var(--color-purple-text)">Admin</span>`,
+      editor: `<span class="badge" style="background:var(--color-blue-bg);color:var(--color-blue-text)">Editor</span>`,
+      viewer: `<span class="badge" style="background:var(--color-amber-bg);color:var(--color-amber-text)">Visualizador</span>`,
+    }[u.rol] || `<span class="badge">${u.rol}</span>`;
+
+    const estadoBadge = activo
+      ? `<span class="badge" style="background:var(--color-green-bg);color:var(--color-green-text)">Activo</span>`
+      : `<span class="badge" style="background:var(--color-red-bg);color:var(--color-red-text)">Inactivo</span>`;
+
+    const esSelf = u.email === USUARIO.email;
+
+    const selectorRol = activo && !esSelf ? `
+      <select onchange="cambiarRolUsuario('${u.email}', this.value, ${adminsActivos})" onclick="event.stopPropagation()"
+              style="width:120px;font-size:12px;padding:4px 8px">
+        <option value="admin"  ${u.rol==='admin' ?'selected':''}>Admin</option>
+        <option value="editor" ${u.rol==='editor'?'selected':''}>Editor</option>
+        <option value="viewer" ${u.rol==='viewer'?'selected':''}>Visualizador</option>
+      </select>` : rolBadge;
+
+    const btnBaja = esSelf ? '' : (activo
+      ? `<button onclick="event.stopPropagation();toggleUsuario('${u.email}', false, '${u.rol}', ${adminsActivos})"
+           style="font-size:11px;padding:3px 10px;color:var(--color-red-text)">Dar de baja</button>`
+      : `<button onclick="event.stopPropagation();toggleUsuario('${u.email}', true, '${u.rol}', ${adminsActivos})"
+           style="font-size:11px;padding:3px 10px">Reactivar</button>`);
+
+    return `<tr onclick="abrirEditarUsuario('${u.email}')"
+               style="cursor:pointer;transition:background 0.1s"
+               onmouseover="this.style.background='#f7f7f5'"
+               onmouseout="this.style.background=''">
+      <td style="font-weight:500;padding:8px 18px">${u.nombre || '—'}</td>
+      <td style="color:var(--color-text-muted);font-size:12px;padding:8px 16px">${u.email}</td>
+      <td style="padding:8px 16px">${selectorRol}</td>
+      <td style="padding:8px 16px">${estadoBadge}</td>
+      <td style="text-align:right;white-space:nowrap;padding:8px 18px">${btnBaja}</td>
+    </tr>`;
+  }).join('');
+
+  cont.innerHTML = `
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:0.5px solid var(--color-border)">
+        <div>
+          <span style="font-size:13px;font-weight:500">Usuarios con acceso</span>
+          <span style="font-size:12px;color:var(--color-text-muted);margin-left:10px">${activos.length} activo${activos.length!==1?'s':''} · ${adminsActivos}/${MAX_ADMINS} admins</span>
+        </div>
+        <button class="primary" onclick="abrirFormNuevoUsuario()" style="font-size:12px;padding:5px 12px">
+          <i class="ti ti-plus"></i> Agregar usuario
+        </button>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="font-size:11px;color:var(--color-text-muted);text-align:left;border-bottom:0.5px solid var(--color-border)">
+              <th style="padding:8px 18px;font-weight:500">Nombre</th>
+              <th style="padding:8px 16px;font-weight:500">Email</th>
+              <th style="padding:8px 16px;font-weight:500">Rol</th>
+              <th style="padding:8px 16px;font-weight:500">Estado</th>
+              <th style="padding:8px 18px"></th>
+            </tr>
+          </thead>
+          <tbody>${filas}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Panel editar usuario (se muestra al hacer click en fila) -->
+    <div id="editar-usuario-form" style="display:none;margin-top:1rem">
+      <div class="card" style="padding:18px;max-width:480px">
+        <p style="font-size:13px;font-weight:500;margin-bottom:4px">Editar usuario</p>
+        <p style="font-size:12px;color:var(--color-text-muted);margin-bottom:14px" id="eu-aviso-email" style="display:none"></p>
+        <div class="field" style="margin-bottom:10px">
+          <label>Nombre completo</label>
+          <input id="eu-nombre" placeholder="Ej: Ana Gómez" />
+        </div>
+        <div class="field" style="margin-bottom:6px">
+          <label>Email institucional</label>
+          <input id="eu-email" type="email" placeholder="usuario@colegioandersen.org" />
+        </div>
+        <p style="font-size:11px;color:var(--color-amber-text);margin-bottom:14px">
+          <i class="ti ti-alert-triangle" style="font-size:11px"></i>
+          El email es el identificador de acceso. Modificarlo cambia cómo el usuario ingresa al sistema.
+        </p>
+        <div style="display:flex;gap:8px">
+          <button class="primary" onclick="guardarEdicionUsuario()" style="font-size:12px">
+            <i class="ti ti-check"></i> Guardar
+          </button>
+          <button onclick="cerrarEditarUsuario()" style="font-size:12px">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel nuevo usuario -->
+    <div id="nuevo-usuario-form" style="display:none;margin-top:1rem">
+      <div class="card" style="padding:18px;max-width:480px">
+        <p style="font-size:13px;font-weight:500;margin-bottom:14px">Nuevo usuario</p>
+        <div class="field" style="margin-bottom:10px">
+          <label>Email institucional *</label>
+          <input id="nu-email" type="email" placeholder="usuario@colegioandersen.org" />
+        </div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Nombre completo *</label>
+          <input id="nu-nombre" placeholder="Ej: Ana Gómez" />
+        </div>
+        <div class="field" style="margin-bottom:16px">
+          <label>Rol</label>
+          <select id="nu-rol">
+            <option value="viewer">Visualizador</option>
+            <option value="editor">Editor</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="primary" onclick="guardarNuevoUsuario(${adminsActivos})" style="font-size:12px">
+            <i class="ti ti-check"></i> Guardar
+          </button>
+          <button onclick="cerrarFormNuevoUsuario()" style="font-size:12px">Cancelar</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function abrirFormNuevoUsuario() {
+  cerrarEditarUsuario();
+  document.getElementById('nuevo-usuario-form').style.display = 'block';
+  document.getElementById('nu-email').focus();
+}
+
+function cerrarFormNuevoUsuario() {
+  document.getElementById('nuevo-usuario-form').style.display = 'none';
+  document.getElementById('nu-email').value  = '';
+  document.getElementById('nu-nombre').value = '';
+  document.getElementById('nu-rol').value    = 'viewer';
+}
+
+function abrirEditarUsuario(email) {
+  const u = _usuariosData.find(u => u.email === email);
+  if (!u) return;
+  cerrarFormNuevoUsuario();
+  document.getElementById('eu-nombre').value = u.nombre || '';
+  document.getElementById('eu-email').value  = u.email  || '';
+  document.getElementById('editar-usuario-form').setAttribute('data-edit-id', u.id);
+  document.getElementById('editar-usuario-form').style.display = 'block';
+  document.getElementById('eu-nombre').focus();
+}
+
+function cerrarEditarUsuario() {
+  const form = document.getElementById('editar-usuario-form');
+  if (form) { form.style.display = 'none'; form.removeAttribute('data-edit-id'); }
+}
+
+async function guardarEdicionUsuario() {
+  const form   = document.getElementById('editar-usuario-form');
+  const id     = form?.getAttribute('data-edit-id');
+  const nombre = document.getElementById('eu-nombre').value.trim();
+  const email  = document.getElementById('eu-email').value.trim().toLowerCase();
+  if (!nombre || !email) { showToast('Completá nombre y email', 'err'); return; }
+  if (!email.endsWith('@colegioandersen.org')) { showToast('El email debe ser @colegioandersen.org', 'err'); return; }
+  // Verificar que el email no esté en uso por otro usuario
+  const otro = _usuariosData.find(u => u.email === email && String(u.id) !== String(id));
+  if (otro) { showToast('Ese email ya está en uso por otro usuario', 'err'); return; }
+  try {
+    await apiPost('editar', 'usuarios', { nombre, email }, id);
+    delete _cache['USUARIOS'];
+    showToast('Usuario actualizado');
+    renderUsuarios();
+  } catch(e) { showToast('Error: ' + e.message, 'err'); }
+}
+
+async function guardarNuevoUsuario(adminsActivos) {
+  const email  = document.getElementById('nu-email').value.trim().toLowerCase();
+  const nombre = document.getElementById('nu-nombre').value.trim();
+  const rol    = document.getElementById('nu-rol').value;
+  if (!email || !nombre) { showToast('Completá email y nombre', 'err'); return; }
+  if (!email.endsWith('@colegioandersen.org')) { showToast('El email debe ser @colegioandersen.org', 'err'); return; }
+  if (rol === 'admin' && adminsActivos >= MAX_ADMINS) { showToast(`Máximo ${MAX_ADMINS} admins activos permitidos.`, 'err'); return; }
+
+  // Verificar duplicado por email
+  const existente = _usuariosData.find(u => u.email === email);
+  if (existente) {
+    if (isTruthy(existente.activo)) {
+      showToast('Ya existe un usuario activo con ese email', 'err'); return;
+    } else {
+      // Existe pero inactivo — ofrecer reactivar
+      confirmar(
+        `"${existente.nombre}" ya existe pero está inactivo`,
+        '¿Querés reactivarlo en lugar de crear uno nuevo?',
+        async () => {
+          try {
+            await apiPost('editar', 'usuarios', { activo: true, nombre, rol }, existente.id);
+            delete _cache['USUARIOS'];
+            showToast(`Usuario "${existente.nombre}" reactivado`);
+            renderUsuarios();
+          } catch(e) { showToast('Error: ' + e.message, 'err'); }
+        }
+      );
+      return;
+    }
+  }
+
+  try {
+    await apiPost('crear', 'usuarios', { email, nombre, rol, activo: true, fecha_alta: new Date().toISOString().slice(0,10) });
+    delete _cache['USUARIOS'];
+    showToast('Usuario agregado');
+    renderUsuarios();
+  } catch(e) { showToast('Error: ' + e.message, 'err'); }
+}
+
+async function cambiarRolUsuario(email, nuevoRol, adminsActivos) {
+  const usuario = _usuariosData.find(u => u.email === email);
+  if (!usuario) return;
+  if (nuevoRol === 'admin' && usuario.rol !== 'admin' && adminsActivos >= MAX_ADMINS) {
+    showToast(`Máximo ${MAX_ADMINS} admins activos permitidos.`, 'err');
+    renderUsuarios(); return;
+  }
+  try {
+    await apiPost('editar', 'usuarios', { rol: nuevoRol }, usuario.id);
+    delete _cache['USUARIOS'];
+    showToast('Rol actualizado');
+    renderUsuarios();
+  } catch(e) { showToast('Error: ' + e.message, 'err'); renderUsuarios(); }
+}
+
+async function toggleUsuario(email, activar, rolActual, adminsActivos) {
+  const usuario = _usuariosData.find(u => u.email === email);
+  if (!usuario) return;
+  if (activar && rolActual === 'admin' && adminsActivos >= MAX_ADMINS) {
+    showToast(`Máximo ${MAX_ADMINS} admins activos. Cambiá el rol antes de reactivar.`, 'err'); return;
+  }
+  confirmar(
+    `¿${activar ? 'Reactivar' : 'Dar de baja'} a ${usuario.nombre}?`,
+    activar ? 'El usuario volverá a tener acceso al sistema.' : 'El usuario perderá el acceso al sistema.',
+    async () => {
+      try {
+        await apiPost('editar', 'usuarios', { activo: activar }, usuario.id);
+        delete _cache['USUARIOS'];
+        showToast(`Usuario ${activar ? 'reactivado' : 'dado de baja'}`);
+        renderUsuarios();
+      } catch(e) { showToast('Error: ' + e.message, 'err'); }
+    }
+  );
+}
+
+// ============================================================
+// START
+// ============================================================
+init();
+</script>
+</body>
+</html>
