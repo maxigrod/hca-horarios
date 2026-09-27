@@ -524,6 +524,51 @@ label { font-size: 12px; color: var(--color-text-muted); display: block; margin-
   </div>
 </div>
 
+<!-- MODAL NUEVA REGLA -->
+<div class="modal-overlay hidden" id="modal-regla">
+  <div class="modal-box" style="max-width:560px">
+    <p class="modal-title">Nueva regla</p>
+    <p class="modal-sub">Se guarda como regla de tipo "pred" (predefinida) — el motor de generación automática (Fase 4, todavía no construido) es quien eventualmente la va a leer e interpretar. No tiene efecto en el horario hasta entonces.</p>
+
+    <div class="field">
+      <label>Categoría</label>
+      <select id="rg-categoria">
+        <option value="sistema">Sistema</option>
+        <option value="materia" selected>Materia</option>
+        <option value="profesor">Profesor</option>
+        <option value="año">Año</option>
+        <option value="curso">Curso</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Nombre de la regla</label>
+      <input id="rg-label" placeholder="Ej: Bloques consecutivos obligatorios" />
+    </div>
+    <div class="field">
+      <label>Descripción</label>
+      <textarea id="rg-descripcion" rows="2" style="resize:vertical" placeholder="Ej: Educación Física — mínimo 3 bloques consecutivos."></textarea>
+    </div>
+
+    <div class="field" style="margin-bottom:6px">
+      <label>Parámetros (clave / valor)</label>
+      <div id="rg-params-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+      <button onclick="agregarParamRegla()" style="font-size:12px;padding:4px 10px"><i class="ti ti-plus"></i> Agregar parámetro</button>
+    </div>
+    <p style="font-size:12px;color:var(--color-text-faint);margin-bottom:1rem">Las claves son libres — no hay validación contra lo que el futuro motor va a esperar. Usá las mismas claves que ya usan reglas similares (ej. "materia", "min_bloques") para no generar inconsistencias.</p>
+
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;cursor:pointer">
+      <input type="checkbox" id="rg-activa" checked style="width:auto" />
+      <span style="font-size:13px;color:var(--color-text)">Activa</span>
+    </label>
+
+    <p id="regla-error" style="color:var(--color-red-text);font-size:13px;margin-bottom:8px;display:none"></p>
+    <div class="modal-actions">
+      <button onclick="cerrarModalRegla()">Cancelar</button>
+      <button class="primary" onclick="guardarNuevaRegla()"><i class="ti ti-check"></i> Guardar regla</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============================================================
 // CONFIG
@@ -3245,6 +3290,15 @@ function _initDragDrop() {
 // ============================================================
 // REGLAS
 // ============================================================
+function _paramsHtmlRegla(paramsJson) {
+  const obj = parseJSON(paramsJson, null);
+  if (!obj || typeof obj !== 'object' || !Object.keys(obj).length) return '';
+  const chips = Object.entries(obj).map(([k, v]) =>
+    `<span class="chip-mini" style="background:var(--color-bg);color:var(--color-text-muted)">${k}: ${v}</span>`
+  ).join('');
+  return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${chips}</div>`;
+}
+
 async function renderReglas() {
   const cont = document.getElementById('reglas-container');
   cont.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando reglas...</div>';
@@ -3264,6 +3318,7 @@ async function renderReglas() {
             ${!activo?'<span class="badge badge-viewer">Inactiva</span>':''}
           </div>
           <p style="font-size:13px;color:var(--color-text-muted)">${r.descripcion}</p>
+          ${_paramsHtmlRegla(r.params_json)}
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0">
           <button onclick="toggleRegla('${r.id}',${!activo})" style="padding:4px 8px;font-size:12px"><i class="ti ti-${activo?'eye-off':'eye'}"></i></button>
@@ -3282,7 +3337,92 @@ async function eliminarRegla(id) {
   try { await apiPost('eliminar','reglas',{}, id); delete _cache['REGLAS']; renderReglas(); showToast('Regla eliminada'); }
   catch(e) { showToast('Error: ' + e.message, 'err'); }
 }
-function abrirModalRegla() { showToast('Formulario de reglas — próximamente'); }
+// ============================================================
+// MODAL NUEVA REGLA
+// ============================================================
+let _reglaParams = []; // [{clave, valor}]
+
+function abrirModalRegla() {
+  document.getElementById('rg-categoria').value    = 'materia';
+  document.getElementById('rg-label').value        = '';
+  document.getElementById('rg-descripcion').value  = '';
+  document.getElementById('rg-activa').checked     = true;
+  document.getElementById('regla-error').style.display = 'none';
+  _reglaParams = [{ clave: '', valor: '' }];
+  renderParamsRegla();
+  document.getElementById('modal-regla').classList.remove('hidden');
+}
+
+function cerrarModalRegla() {
+  document.getElementById('modal-regla').classList.add('hidden');
+}
+
+function renderParamsRegla() {
+  const cont = document.getElementById('rg-params-list');
+  cont.innerHTML = _reglaParams.map((p, i) => `
+    <div style="display:flex;gap:6px;align-items:center">
+      <input placeholder="clave (ej: materia)" value="${p.clave}" oninput="setParamRegla(${i},'clave',this.value)" style="flex:1" />
+      <input placeholder="valor (ej: 3, o Lunes,Martes)" value="${p.valor}" oninput="setParamRegla(${i},'valor',this.value)" style="flex:1.4" />
+      <button onclick="quitarParamRegla(${i})" style="padding:5px 9px;color:var(--color-red-text);flex-shrink:0"><i class="ti ti-x"></i></button>
+    </div>`).join('');
+}
+
+function agregarParamRegla() {
+  _reglaParams.push({ clave: '', valor: '' });
+  renderParamsRegla();
+}
+
+function setParamRegla(i, campo, val) {
+  _reglaParams[i][campo] = val;
+}
+
+function quitarParamRegla(i) {
+  _reglaParams.splice(i, 1);
+  if (!_reglaParams.length) _reglaParams.push({ clave: '', valor: '' });
+  renderParamsRegla();
+}
+
+async function guardarNuevaRegla() {
+  const errBox = document.getElementById('regla-error');
+  errBox.style.display = 'none';
+
+  const categoria  = document.getElementById('rg-categoria').value;
+  const label      = document.getElementById('rg-label').value.trim();
+  const descripcion = document.getElementById('rg-descripcion').value.trim();
+  const activa     = document.getElementById('rg-activa').checked;
+
+  if (!label) { errBox.textContent = 'Ingresá un nombre para la regla.'; errBox.style.display = 'block'; return; }
+
+  // Params: descartar filas vacías, validar que las que tienen clave tengan valor y viceversa
+  const paramsLimpios = _reglaParams.filter(p => p.clave.trim() || p.valor.trim());
+  const incompletos = paramsLimpios.some(p => !p.clave.trim() || !p.valor.trim());
+  if (incompletos) { errBox.textContent = 'Cada parámetro necesita clave y valor (o borrá la fila).'; errBox.style.display = 'block'; return; }
+
+  const clavesVistas = new Set();
+  for (const p of paramsLimpios) {
+    const clave = p.clave.trim();
+    if (clavesVistas.has(clave)) { errBox.textContent = `La clave "${clave}" está repetida.`; errBox.style.display = 'block'; return; }
+    clavesVistas.add(clave);
+  }
+
+  const paramsObj = {};
+  paramsLimpios.forEach(p => { paramsObj[p.clave.trim()] = p.valor.trim(); });
+
+  try {
+    await apiPost('crear','reglas', {
+      categoria, tipo: 'pred', label, descripcion,
+      params_json: JSON.stringify(paramsObj),
+      activa,
+    });
+    delete _cache['REGLAS'];
+    cerrarModalRegla();
+    showToast('Regla guardada');
+    renderReglas();
+  } catch(e) {
+    errBox.textContent = 'Error al guardar: ' + e.message;
+    errBox.style.display = 'block';
+  }
+}
 
 // ============================================================
 // HORARIO
