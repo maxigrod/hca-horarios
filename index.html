@@ -3497,24 +3497,29 @@ async function buildHorario() {
     asignacionesFiltradas = asignaciones.filter(a => String(a.id_profesor) === String(idProf) && a.estado !== 'archivado');
   }
 
-  const [materias, profesores, cursos] = await Promise.all([
+  const [materias, profesores, cursos, tramosHorario] = await Promise.all([
     apiGet('leer', 'MATERIAS'),
     apiGet('leer', 'PROFESORES'),
     apiGet('leer', 'CURSOS'),
+    apiGet('leer', 'ASIGNACIONES_HORARIO'),
   ]);
 
   const grilla = {};
   DIAS.forEach(d => grilla[d] = {});
   asignacionesFiltradas.forEach(a => {
-    if (!a.dia || !a.id_bloque_inicio) return; // sin horario asignado todavía (pendiente del CSP)
-    const bloqueInicio = bl.find(b => String(b.id) === String(a.id_bloque_inicio));
-    if (!bloqueInicio) return;
-    const cant = Number(a.cantidad_bloques) || 1;
-    for (let i = 0; i < cant; i++) {
-      const num = bloqueInicio.num + i;
-      grilla[a.dia] = grilla[a.dia] || {};
-      grilla[a.dia][num] = a;
-    }
+    // Una asignación puede tener 0, 1 o varios tramos horarios (núcleo+resto, co-docencia, etc.)
+    const tramos = tramosHorario.filter(t => String(t.id_asignacion) === String(a.id));
+    tramos.forEach(t => {
+      if (!t.dia || !t.id_bloque_inicio) return; // tramo sin horario asignado todavía (pendiente del CSP)
+      const bloqueInicio = bl.find(b => String(b.id) === String(t.id_bloque_inicio));
+      if (!bloqueInicio) return;
+      const cant = Number(t.cantidad_bloques) || 1;
+      for (let i = 0; i < cant; i++) {
+        const num = bloqueInicio.num + i;
+        grilla[t.dia] = grilla[t.dia] || {};
+        grilla[t.dia][num] = a;
+      }
+    });
   });
 
   document.getElementById('horario-body').innerHTML = bl.map(b => {
